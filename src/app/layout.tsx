@@ -40,7 +40,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('nomni-theme');var d=t?JSON.parse(t).state.theme:'dark';if(d==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){document.documentElement.classList.add('dark');}})();`,
+            __html: `(function(){try{var raw=localStorage.getItem('nomni-theme');var theme='dark';if(raw){try{var p=JSON.parse(raw);if(p&&p.state&&(p.state.theme==='light'||p.state.theme==='dark')){theme=p.state.theme;}else if(raw==='light'||raw==='dark'){theme=raw;}}catch(err){if(raw==='light'||raw==='dark')theme=raw;}}else if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches){theme='light';}if(theme==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){document.documentElement.classList.add('dark');}})();`,
           }}
         />
       </head>

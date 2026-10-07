@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   /* Nomni Official Light Mode (Cream & Forest Green) */
   --bg-canvas: #FAF7E9;
@@ -19,7 +21,7 @@
   --pill-active-text: #FFFFFF;
 }
 
-html.dark {
+.dark, html.dark {
   /* Nomni Midnight Dark Mode (Obsidian & Mint Accent) */
   --bg-canvas: #101216;
   --bg-surface: #181B20;

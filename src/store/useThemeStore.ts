@@ -11,21 +11,48 @@ interface ThemeState {
   setTheme: (theme: Theme) => void;
 }
 
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'dark';
+  try {
+    const item = localStorage.getItem('nomni-theme');
+    if (item) {
+      const parsed = JSON.parse(item);
+      if (parsed?.state?.theme === 'light' || parsed?.state?.theme === 'dark') {
+        return parsed.state.theme;
+      }
+      if (item === 'light' || item === 'dark') {
+        return item;
+      }
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  } catch {
+    return 'dark';
+  }
+}
+
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
-      theme: 'dark',
+      theme: getInitialTheme(),
       toggleTheme: () => {
         const next = get().theme === 'light' ? 'dark' : 'light';
         set({ theme: next });
         if (typeof document !== 'undefined') {
-          document.documentElement.classList.toggle('dark', next === 'dark');
+          if (next === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
         }
       },
       setTheme: (theme) => {
         set({ theme });
         if (typeof document !== 'undefined') {
-          document.documentElement.classList.toggle('dark', theme === 'dark');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
         }
       },
     }),
@@ -33,7 +60,11 @@ export const useThemeStore = create<ThemeState>()(
       name: 'nomni-theme',
       onRehydrateStorage: () => (state) => {
         if (state && typeof document !== 'undefined') {
-          document.documentElement.classList.toggle('dark', state.theme === 'dark');
+          if (state.theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
         }
       },
     }
