@@ -4,7 +4,7 @@ import React, { useState, useEffect, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { InternalOrder } from '@/lib/types';
-import { formatMoney, formatDateTime, getNextStatus, getProviderLabel } from '@/lib/utils';
+import { formatMoney, formatDateTime, getNextStatus } from '@/lib/utils';
 import { ProviderBadge } from '@/components/ProviderBadge';
 import { StatusBadge } from '@/components/StatusBadge';
 import {
@@ -290,8 +290,11 @@ function OrderDetailContent() {
 
         {/* Totals Summary */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 pt-4 border-t border-[#E8E2D1] dark:border-white/[0.06]">
-          <div className="text-xs text-[#4A4E57] dark:text-zinc-400 space-y-1">
-            <p>Provider: <span className="font-semibold text-[#0E3727] dark:text-zinc-200">{getProviderLabel(order.provider)}</span></p>
+          <div className="text-xs text-[#4A4E57] dark:text-zinc-400 space-y-2">
+            <div className="flex items-center gap-2">
+              <span>Provider:</span>
+              <ProviderBadge provider={order.provider} />
+            </div>
             <p>Normalized Currency: <span className="font-mono font-semibold text-[#0E3727] dark:text-zinc-200">{order.currency}</span></p>
           </div>
 

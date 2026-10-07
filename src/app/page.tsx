@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { formatMoney, formatDateTime } from '@/lib/utils';
 import { ProviderBadge } from '@/components/ProviderBadge';
 import { StatusBadge } from '@/components/StatusBadge';
+import { UberEatsLogo, DoorDashLogo } from '@/components/ProviderLogos';
 import {
   Search,
   ArrowUpDown,
@@ -12,7 +13,6 @@ import {
   ShoppingBag,
   ChevronRight,
   AlertCircle,
-  Sparkles,
   Command,
   CornerDownLeft,
 } from 'lucide-react';
@@ -212,20 +212,20 @@ function OrdersListContent() {
           <button
             onClick={() => simulateIngest('uber')}
             disabled={simulating !== null}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#E7F6ED] dark:bg-[#06291C] text-[#0E4A2F] dark:text-[#34D399] border border-[#BCE8CD] dark:border-[#0E5C3B] hover:opacity-90 transition-all cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#E7F6ED] dark:bg-[#06291C] text-[#0E4A2F] dark:text-[#34D399] border border-[#BCE8CD] dark:border-[#0E5C3B] hover:opacity-90 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
             title="Simulate verified Uber Eats webhook ingestion"
           >
-            <Sparkles className="w-3 h-3 text-[#10B981] dark:text-[#34D399]" />
+            <UberEatsLogo className="w-3.5 h-3.5 text-[#10B981] dark:text-[#34D399]" />
             <span>+ Uber Webhook</span>
           </button>
 
           <button
             onClick={() => simulateIngest('doordash')}
             disabled={simulating !== null}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#FDE8E8] dark:bg-[#2A0E10] text-[#9B1C1C] dark:text-[#F87171] border border-[#F8B4B4] dark:border-[#5C1D24] hover:opacity-90 transition-all cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#FDE8E8] dark:bg-[#2A0E10] text-[#9B1C1C] dark:text-[#F87171] border border-[#F8B4B4] dark:border-[#5C1D24] hover:opacity-90 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
             title="Simulate verified DoorDash webhook ingestion"
           >
-            <Sparkles className="w-3 h-3 text-[#EF4444] dark:text-[#F87171]" />
+            <DoorDashLogo className="w-3.5 h-3.5 text-[#EF4444] dark:text-[#F87171]" />
             <span>+ DoorDash Webhook</span>
           </button>
 
@@ -319,7 +319,12 @@ function OrdersListContent() {
           <div className="flex items-center gap-2 pt-2 border-t border-[#E8E2D1] dark:border-white/[0.04] text-[11px] text-[#4A4E57] dark:text-zinc-400">
             <span>Active filters:</span>
             {provider !== 'all' && (
-              <span className="px-2 py-0.5 rounded-md bg-[#EFE9D7] dark:bg-white/[0.08] text-[#0E3727] dark:text-zinc-200 border border-[#E0D8C3] dark:border-white/[0.08] flex items-center gap-1">
+              <span className="px-2 py-0.5 rounded-md bg-[#EFE9D7] dark:bg-white/[0.08] text-[#0E3727] dark:text-zinc-200 border border-[#E0D8C3] dark:border-white/[0.08] flex items-center gap-1.5">
+                {provider === 'uber_eats' ? (
+                  <UberEatsLogo className="w-3 h-3 text-[#10B981] dark:text-[#34D399]" />
+                ) : (
+                  <DoorDashLogo className="w-3 h-3 text-[#EF4444] dark:text-[#F87171]" />
+                )}
                 Channel: {provider === 'uber_eats' ? 'Uber Eats' : 'DoorDash'}
                 <button onClick={() => handleProviderChange('all')} className="hover:font-bold">✕</button>
               </span>
