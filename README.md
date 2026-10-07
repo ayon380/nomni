@@ -1,6 +1,6 @@
 # Nomni — Marketplace Order Unified System
 
-A unified marketplace-order platform that ingests webhooks from **Uber Eats** and **DoorDash** into a canonical internal kitchen ticket, with an Apple-grade minimalist dark admin dashboard.
+A unified marketplace-order platform that ingests webhooks from **Uber Eats** and **DoorDash** into a canonical internal kitchen ticket dashboard.
 
 Built for **Nomni Kitchen OS**.
 
