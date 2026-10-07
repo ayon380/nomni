@@ -109,6 +109,45 @@ assert(
 assert(normalizedDD.currency === 'USD', 'DoorDash currency is USD');
 assert(normalizedDD.status === 'RECEIVED', 'DoorDash NEW maps to canonical RECEIVED status');
 
+// 4b. Test Official Sample Fixtures (from official developer documentation)
+const officialUberWebhook = JSON.parse(
+  fs.readFileSync(path.join(process.cwd(), 'fixtures', 'uber', 'sample_webhook.json'), 'utf-8')
+);
+const officialUberOrder = JSON.parse(
+  fs.readFileSync(path.join(process.cwd(), 'fixtures', 'uber', 'sample_order.json'), 'utf-8')
+);
+const officialDDOrder = JSON.parse(
+  fs.readFileSync(path.join(process.cwd(), 'fixtures', 'doordash', 'sample.json'), 'utf-8')
+);
+
+// Detection of official fixtures
+assert(detectProvider(officialUberWebhook) === 'uber_eats', 'Zero-hint detection identifies official Uber sample_webhook.json');
+assert(detectProvider(officialUberOrder) === 'uber_eats', 'Zero-hint detection identifies official Uber sample_order.json');
+assert(detectProvider(officialDDOrder) === 'doordash', 'Zero-hint detection identifies official DoorDash sample.json');
+
+// Normalization of official Uber sample
+const normalizedOfficialUber = normalizeUberOrder(officialUberWebhook, officialUberOrder);
+assert(normalizedOfficialUber.provider === 'uber_eats', 'Official Uber normalized provider is uber_eats');
+assert(normalizedOfficialUber.external_order_id === 'BC953', 'Official Uber display_id extracted as BC953');
+assert(normalizedOfficialUber.customer.name === 'Larry', 'Official Uber handles single-name customer (Larry)');
+assert(normalizedOfficialUber.customer.phone === '+1 555-555-5555', 'Official Uber eater phone extracted (+1 555-555-5555)');
+assert(normalizedOfficialUber.line_items.length === 3, 'Official Uber cart items extracted (3 items)');
+assert(normalizedOfficialUber.total_cents === 1399, 'Official Uber total_cents extracted (1399 cents / $13.99)');
+assert(normalizedOfficialUber.currency === 'USD', 'Official Uber currency is USD');
+
+// Normalization of official DoorDash sample
+const normalizedOfficialDD = normalizeDoorDashOrder(officialDDOrder);
+assert(normalizedOfficialDD.provider === 'doordash', 'Official DoorDash normalized provider is doordash');
+assert(normalizedOfficialDD.external_order_id === 'abc12345', 'Official DoorDash ID extracted as abc12345');
+assert(normalizedOfficialDD.customer.name === 'Kelley W.', 'Official DoorDash customer name extracted (Kelley W.)');
+assert(normalizedOfficialDD.customer.phone === '+18559731040', 'Official DoorDash consumer.phone extracted (+18559731040)');
+assert(normalizedOfficialDD.line_items.length === 1, 'Official DoorDash category-nested items extracted (Burrito Scram-Bowl)');
+assert(normalizedOfficialDD.line_items[0].name === 'Burrito Scram-Bowl', 'Official DoorDash item name verified');
+assert(
+  normalizedOfficialDD.total_cents === 2300,
+  'Official DoorDash total_cents calculated correctly (2000 subtotal + 300 tax = 2300 cents)'
+);
+
 // 5. Test Store & Idempotent Upsert
 orderStore.resetStore();
 const initialCount = orderStore.getAllOrders().length;

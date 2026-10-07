@@ -35,10 +35,11 @@ export function detectProvider(payload: Record<string, unknown>): OrderProvider 
   }
 
   // 2. DoorDash Marketplace Webhook Fingerprint
-  // Structure: { event: { type: "OrderCreate", status: "NEW" }, order: { id: "...", items: [...] } }
+  // Structure: { event: { type: "OrderCreate", status: "NEW" }, order: { categories/items: [...], consumer: { ... } } }
   if (
     p.event?.type === 'OrderCreate' ||
-    (p.order && Array.isArray(p.order.items) && p.order.consumer)
+    (p.order && (Array.isArray(p.order.items) || Array.isArray(p.order.categories)) && p.order.consumer) ||
+    p.order?.experience === 'DOORDASH'
   ) {
     return 'doordash';
   }

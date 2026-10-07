@@ -58,21 +58,29 @@ export function normalizeDoorDashOrder(payload: Record<string, unknown>): Intern
 
   const consumer = order.consumer || {};
   const customerName = [consumer.first_name, consumer.last_name].filter(Boolean).join(' ') || 'DoorDash Customer';
-  const customerPhone = consumer.phone_number || undefined;
+  // Official DoorDash schema uses consumer.phone or consumer.phone_number
+  const customerPhone = consumer.phone || consumer.phone_number || undefined;
 
-  const rawItems = order.items || [];
+  // In official DoorDash schema, items may live directly under order.items or nested under order.categories[].items
+  let rawItems: Record<string, any>[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (Array.isArray(order.items) && order.items.length > 0) {
+    rawItems = order.items;
+  } else if (Array.isArray(order.categories)) {
+    rawItems = order.categories.flatMap((cat: Record<string, any>) => cat.items || []); // eslint-disable-line @typescript-eslint/no-explicit-any
+  }
+
   const line_items = rawItems.map((item: Record<string, any>, idx: number) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     const unitPrice = typeof item.price === 'number'
       ? item.price
-      : (typeof item.unit_price === 'number' ? item.unit_price : 0);
+      : (typeof item.unit_price === 'number' ? item.unit_price : (typeof item.base_price === 'number' ? item.base_price : 0));
     const quantity = typeof item.quantity === 'number' ? item.quantity : 1;
     const lineTotal = typeof item.total_price === 'number'
       ? item.total_price
       : (unitPrice * quantity);
 
     return {
-      id: item.id || `dd_item_${idx + 1}`,
-      name: item.name || 'Untitled Item',
+      id: item.merchant_supplied_id || item.id || `dd_item_${idx + 1}`,
+      name: item.name || item.title || 'Untitled Item',
       quantity,
       unit_price: unitPrice,
       line_total: lineTotal,
@@ -83,7 +91,7 @@ export function normalizeDoorDashOrder(payload: Record<string, unknown>): Intern
   // DoorDash pricing breakdown (all integers in cents)
   const subtotal = typeof order.subtotal === 'number' ? order.subtotal : 0;
   const tax = typeof order.tax === 'number' ? order.tax : 0;
-  const tip = typeof order.tip_amount === 'number' ? order.tip_amount : 0;
+  const tip = typeof order.tip_amount === 'number' ? order.tip_amount : (typeof order.merchant_tip_amount === 'number' ? order.merchant_tip_amount : 0);
   const discount = typeof order.total_discount_amount === 'number' ? order.total_discount_amount : 0;
   const totalCents = (subtotal + tax + tip - discount) ||
     line_items.reduce((acc: number, it: { line_total: number }) => acc + it.line_total, 0);
@@ -104,7 +112,7 @@ export function normalizeDoorDashOrder(payload: Record<string, unknown>): Intern
     line_items,
     total_cents: totalCents,
     currency,
-    created_at: p.event?.created_at || new Date().toISOString(),
+    created_at: p.event?.created_at || order.estimated_pickup_time || new Date().toISOString(),
     raw_payload: payload,
   };
 }

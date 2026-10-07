@@ -55,6 +55,13 @@ export function resolveUberOrderDetails(webhookPayload: Record<string, unknown>)
 
   // Try to find matching fixture by order ID
   if (resourceId) {
+    if (resourceId === '153dd7f1-339d-4619-940c-418943c14636') {
+      const sampleOrderPath = path.join(fixturesDir, 'sample_order.json');
+      if (fs.existsSync(sampleOrderPath)) {
+        return JSON.parse(fs.readFileSync(sampleOrderPath, 'utf-8'));
+      }
+    }
+
     const specificPath = path.join(fixturesDir, `get_order_${resourceId}.json`);
     if (fs.existsSync(specificPath)) {
       return JSON.parse(fs.readFileSync(specificPath, 'utf-8'));
@@ -66,6 +73,12 @@ export function resolveUberOrderDetails(webhookPayload: Record<string, unknown>)
         return JSON.parse(fs.readFileSync(sample2, 'utf-8'));
       }
     }
+  }
+
+  // Check official sample_order.json if present
+  const sampleOrder = path.join(fixturesDir, 'sample_order.json');
+  if (fs.existsSync(sampleOrder)) {
+    return JSON.parse(fs.readFileSync(sampleOrder, 'utf-8'));
   }
 
   // Default fallback to the primary official Get Order sample fixture
@@ -113,19 +126,19 @@ export function normalizeUberOrder(
   const order = orderRaw as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   const wp = webhookPayload as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-  const eater = order.eater || {};
+  const eater = order.eater || (Array.isArray(order.eaters) ? order.eaters[0] : {}) || {};
   const customerName = [eater.first_name, eater.last_name].filter(Boolean).join(' ') || 'Uber Eats Customer';
-  const customerPhone = eater.phone || undefined;
+  const customerPhone = eater.phone || eater.phone_number || undefined;
 
   const rawItems = order.cart?.items || [];
   const line_items = rawItems.map((item: Record<string, any>, idx: number) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-    const unitPrice = item.price?.unit_price?.amount ?? 0;
+    const unitPrice = item.price?.unit_price?.amount ?? item.price?.base_unit_price?.amount ?? 0;
     const qty = item.quantity ?? 1;
     const lineTotal = item.price?.total_price?.amount ?? (unitPrice * qty);
 
     return {
-      id: item.id || `ub_item_${idx + 1}`,
-      name: item.title || 'Untitled Item',
+      id: item.id || item.instance_id || `ub_item_${idx + 1}`,
+      name: item.title || item.name || 'Untitled Item',
       quantity: qty,
       unit_price: unitPrice,
       line_total: lineTotal,
@@ -140,7 +153,8 @@ export function normalizeUberOrder(
 
   const currency = charges?.total?.currency_code ||
     rawItems[0]?.price?.unit_price?.currency_code ||
-    'AUD';
+    order.currency ||
+    'USD';
 
   const externalId = order.display_id || order.id || wp.meta?.resource_id || `UB-${Date.now()}`;
   const internalId = `ord_uber_${(order.id || externalId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}`;

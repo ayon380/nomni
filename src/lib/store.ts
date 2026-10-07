@@ -45,11 +45,13 @@ class OrderStore {
     this.orders.clear();
     const fixturesDir = path.join(process.cwd(), 'fixtures');
 
-    // 1. Seed Uber Eats Sample Order 1 (Sarah Jenkins)
+    // 1. Seed Uber Eats Official Sample Order (Larry - Muffin, Coffee, Donut)
     try {
-      const uberSamplePath = path.join(fixturesDir, 'uber', 'get_order_sample.json');
-      if (fs.existsSync(uberSamplePath)) {
-        const uberJson = JSON.parse(fs.readFileSync(uberSamplePath, 'utf-8'));
+      const samplePath = path.join(fixturesDir, 'uber', 'sample_order.json');
+      const fallbackPath = path.join(fixturesDir, 'uber', 'get_order_sample.json');
+      const targetPath = fs.existsSync(samplePath) ? samplePath : fallbackPath;
+      if (fs.existsSync(targetPath)) {
+        const uberJson = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
         const uberOrder = normalizeUberOrder({ meta: { resource_id: uberJson.id } }, uberJson);
         this.orders.set(uberOrder.id, uberOrder);
       }
@@ -57,11 +59,13 @@ class OrderStore {
       console.warn('Could not seed Uber sample 1:', e);
     }
 
-    // 2. Seed DoorDash Sample Order 1 (Marcus Vance)
+    // 2. Seed DoorDash Official Sample Order (Kelley W. - Burrito Scram-Bowl)
     try {
-      const ddSamplePath = path.join(fixturesDir, 'doordash', 'webhook_order_create.json');
-      if (fs.existsSync(ddSamplePath)) {
-        const ddJson = JSON.parse(fs.readFileSync(ddSamplePath, 'utf-8'));
+      const samplePath = path.join(fixturesDir, 'doordash', 'sample.json');
+      const fallbackPath = path.join(fixturesDir, 'doordash', 'webhook_order_create.json');
+      const targetPath = fs.existsSync(samplePath) ? samplePath : fallbackPath;
+      if (fs.existsSync(targetPath)) {
+        const ddJson = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
         const ddOrder = normalizeDoorDashOrder(ddJson);
         this.orders.set(ddOrder.id, ddOrder);
       }

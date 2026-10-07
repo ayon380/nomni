@@ -43,6 +43,15 @@ Both curls target the single unified ingest endpoint: `POST http://localhost:300
 
 Uber Eats requires an HMAC-SHA256 signature in the `X-Uber-Signature` header computed from the raw request body using the webhook secret (default: `uber_webhook_secret_key`).
 
+**Official Sample Webhook (`fixtures/uber/sample_webhook.json`):**
+```bash
+curl -i -X POST http://localhost:3000/api/webhooks \
+  -H "Content-Type: application/json" \
+  -H "X-Uber-Signature: 8ae3a0cfc778ece54a4691525e2965240c67826654ec41ad7616992c32ded45b" \
+  --data-binary @fixtures/uber/sample_webhook.json
+```
+
+**Alternative Notification Payload (`fixtures/uber/webhook_notification.json`):**
 ```bash
 curl -i -X POST http://localhost:3000/api/webhooks \
   -H "Content-Type: application/json" \
@@ -62,6 +71,15 @@ curl -i -X POST http://localhost:3000/api/webhooks \
 
 DoorDash Marketplace requires an `Authorization: Bearer <DOORDASH_TOKEN>` header (default: `doordash_marketplace_token_2026`).
 
+**Official Sample Webhook (`fixtures/doordash/sample.json`):**
+```bash
+curl -i -X POST http://localhost:3000/api/webhooks \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer doordash_marketplace_token_2026" \
+  --data-binary @fixtures/doordash/sample.json
+```
+
+**Alternative OrderCreate Payload (`fixtures/doordash/webhook_order_create.json`):**
 ```bash
 curl -i -X POST http://localhost:3000/api/webhooks \
   -H "Content-Type: application/json" \
@@ -72,8 +90,8 @@ curl -i -X POST http://localhost:3000/api/webhooks \
 **Expected Response**:
 
 - **HTTP Status**: `200 OK`
-- **Body**: `{"order_id":"DD-2019","status":"acknowledged"}`
-- **Headers**: `x-nomni-order-id: ord_dd_DD88492019`, `x-nomni-upsert: true`
+- **Body**: `{"order_id":"abc12345","status":"acknowledged"}` (or `{"order_id":"DD-2019","status":"acknowledged"}`)
+- **Headers**: `x-nomni-order-id: ord_dd_...`, `x-nomni-upsert: true`
 
 ---
 
@@ -87,16 +105,16 @@ The internal model is canonical and belongs to Nomni, decoupling internal operat
 | `provider`                          | Normalized `'uber_eats'`                      | Normalized `'doordash'`                              | Canonical provider discriminator     |
 | `external_order_id`                 | `display_id` (fallback: `id`)                 | `order.display_id` (fallback: `order.id`)            | Display code seen by staff & dashers |
 | `status`                            | `current_state` (e.g. `CREATED` → `RECEIVED`) | `event.status` / `order.status` (`NEW` → `RECEIVED`) | Normalized into internal lifecycle   |
-| `customer.name`                     | `eater.first_name` + `eater.last_name`        | `order.consumer.first_name` + `last_name`            | Customer display name                |
-| `customer.phone`                    | `eater.phone`                                 | `order.consumer.phone_number`                        | Customer contact / masked number     |
-| `line_items[].name`                 | `cart.items[].title`                          | `order.items[].name`                                 | Product name                         |
-| `line_items[].quantity`             | `cart.items[].quantity`                       | `order.items[].quantity`                             | Count of units                       |
-| `line_items[].unit_price`           | `cart.items[].price.unit_price.amount`        | `order.items[].price`                                | Integer in cents                     |
-| `line_items[].line_total`           | `cart.items[].price.total_price.amount`       | `quantity * price`                                   | Integer in cents                     |
-| `line_items[].special_instructions` | `cart.items[].special_instructions`           | `order.items[].special_instructions`                 | Modifiers / kitchen notes            |
-| `total_cents`                       | `payment.charges.total.amount`                | `subtotal + tax + tip_amount`                        | Integer in cents                     |
-| `currency`                          | `payment.charges.total.currency_code`         | `order.currency`                                     | ISO currency (`AUD`, `USD`)          |
-| `created_at`                        | `placed_at`                                   | `event.created_at`                                   | ISO 8601 timestamp string            |
+| `customer.name`                     | `eater.first_name` (+ optional `last_name`)   | `order.consumer.first_name` + `last_name`            | Customer display name                |
+| `customer.phone`                    | `eater.phone` / `eater.phone_number`          | `order.consumer.phone` / `phone_number`              | Customer contact / masked number     |
+| `line_items[].name`                 | `cart.items[].title`                          | `order.categories[].items[].name` / `items[].name`   | Product name                         |
+| `line_items[].quantity`             | `cart.items[].quantity`                       | `item.quantity`                                      | Count of units                       |
+| `line_items[].unit_price`           | `cart.items[].price.unit_price.amount`        | `item.price`                                         | Integer in cents                     |
+| `line_items[].line_total`           | `cart.items[].price.total_price.amount`       | `item.price * quantity`                              | Integer in cents                     |
+| `line_items[].special_instructions` | `cart.items[].special_instructions`           | `item.special_instructions`                          | Modifiers / kitchen notes            |
+| `total_cents`                       | `payment.charges.total.amount`                | `subtotal + tax + tip - discount`                    | Integer in cents                     |
+| `currency`                          | `payment.charges.total.currency_code`         | `order.currency` (default `'USD'`)                   | ISO currency (`AUD`, `USD`)          |
+| `created_at`                        | `placed_at`                                   | `estimated_pickup_time` / `event.created_at`         | ISO 8601 timestamp string            |
 | `raw_payload`                       | `{ webhook, get_order_details }`              | Full webhook JSON payload                            | Stored for debugging & telemetry     |
 
 ---
