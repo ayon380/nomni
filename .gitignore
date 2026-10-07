@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+*.zip
 /data/
 learning/
 data.md
