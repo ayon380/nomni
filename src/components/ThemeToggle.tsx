@@ -1,11 +1,12 @@
 'use client';
 
 import React from 'react';
-import { useTheme } from './ThemeProvider';
+import { useThemeStore } from '@/store/useThemeStore';
 import { Sun, Moon } from 'lucide-react';
 
 export function ThemeToggle({ className = '' }: { className?: string }) {
-  const { theme, toggleTheme } = useTheme();
+  const theme = useThemeStore((state) => state.theme);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
 
   return (
     <button

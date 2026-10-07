@@ -20,13 +20,14 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
-import { useOrders } from '@/components/OrdersContext';
+import { useOrdersStore } from '@/store/useOrdersStore';
 
 function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: string }> }) {
   const { id } = use(paramsPromise);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { orders, updateOrderInStore } = useOrders();
+  const orders = useOrdersStore((state) => state.orders);
+  const updateOrderInStore = useOrdersStore((state) => state.updateOrderInStore);
 
   const cachedOrder = orders.find((o) => o.id === id) || null;
   const [order, setOrder] = useState<InternalOrder | null>(cachedOrder);

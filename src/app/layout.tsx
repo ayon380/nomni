@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
 import { Fraunces, Hanken_Grotesk, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import { OrdersProvider } from '@/components/OrdersContext';
 import { Header } from '@/components/Header';
-import { ThemeProvider } from '@/components/ThemeProvider';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -39,15 +37,18 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${hanken.variable} ${fraunces.variable} ${jetbrainsMono.variable}`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('nomni-theme');var d=t?JSON.parse(t).state.theme:'dark';if(d==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){document.documentElement.classList.add('dark');}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-screen antialiased">
-        <ThemeProvider>
-          <OrdersProvider>
-            <Header />
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              {children}
-            </main>
-          </OrdersProvider>
-        </ThemeProvider>
+        <Header />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {children}
+        </main>
       </body>
     </html>
   );

@@ -17,7 +17,7 @@ import {
   CornerDownLeft,
 } from 'lucide-react';
 
-import { useOrders } from '@/components/OrdersContext';
+import { useOrdersStore } from '@/store/useOrdersStore';
 
 function OrdersListContent() {
   const router = useRouter();
@@ -37,8 +37,12 @@ function OrdersListContent() {
   }
   const [simulating, setSimulating] = useState<string | null>(null);
 
-  // Consume shared persistent orders state
-  const { orders, loading, error, fetchOrders, hasLoadedOnce } = useOrders();
+  // Consume Zustand persistent orders state
+  const orders = useOrdersStore((state) => state.orders);
+  const loading = useOrdersStore((state) => state.loading);
+  const error = useOrdersStore((state) => state.error);
+  const fetchOrders = useOrdersStore((state) => state.fetchOrders);
+  const hasLoadedOnce = useOrdersStore((state) => state.hasLoadedOnce);
 
   // Keyboard navigation index (-1 when none selected)
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
