@@ -43,20 +43,11 @@ Both curls target the single unified ingest endpoint: `POST http://localhost:300
 
 Uber Eats requires an HMAC-SHA256 signature in the `X-Uber-Signature` header computed from the raw request body using the webhook secret (default: `uber_webhook_secret_key`).
 
-**Official Sample Webhook (`fixtures/uber/sample_webhook.json`):**
 ```bash
 curl -i -X POST http://localhost:3000/api/webhooks \
   -H "Content-Type: application/json" \
   -H "X-Uber-Signature: 8ae3a0cfc778ece54a4691525e2965240c67826654ec41ad7616992c32ded45b" \
   --data-binary @fixtures/uber/sample_webhook.json
-```
-
-**Alternative Notification Payload (`fixtures/uber/webhook_notification.json`):**
-```bash
-curl -i -X POST http://localhost:3000/api/webhooks \
-  -H "Content-Type: application/json" \
-  -H "X-Uber-Signature: ea12e3f8e836125fec601b75beb9fb7769fdb3e58637149111fb65bc665050b2" \
-  --data-binary @fixtures/uber/webhook_notification.json
 ```
 
 **Expected Response**:
@@ -71,7 +62,6 @@ curl -i -X POST http://localhost:3000/api/webhooks \
 
 DoorDash Marketplace requires an `Authorization: Bearer <DOORDASH_TOKEN>` header (default: `doordash_marketplace_token_2026`).
 
-**Official Sample Webhook (`fixtures/doordash/sample.json`):**
 ```bash
 curl -i -X POST http://localhost:3000/api/webhooks \
   -H "Content-Type: application/json" \
@@ -79,19 +69,11 @@ curl -i -X POST http://localhost:3000/api/webhooks \
   --data-binary @fixtures/doordash/sample.json
 ```
 
-**Alternative OrderCreate Payload (`fixtures/doordash/webhook_order_create.json`):**
-```bash
-curl -i -X POST http://localhost:3000/api/webhooks \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer doordash_marketplace_token_2026" \
-  --data-binary @fixtures/doordash/webhook_order_create.json
-```
-
 **Expected Response**:
 
 - **HTTP Status**: `200 OK`
-- **Body**: `{"order_id":"abc12345","status":"acknowledged"}` (or `{"order_id":"DD-2019","status":"acknowledged"}`)
-- **Headers**: `x-nomni-order-id: ord_dd_...`, `x-nomni-upsert: true`
+- **Body**: `{"order_id":"abc12345","status":"acknowledged"}`
+- **Headers**: `x-nomni-order-id: ord_dd_abc12345`, `x-nomni-upsert: true`
 
 ---
 
@@ -126,7 +108,7 @@ Every working note in the brief was audited against the authoritative official d
 | #      | Working Note in Brief                                                                                      | Verification Finding                                                                                                                                                                                 | Verdict                 | Authoritative Overruling Documentation                                                                                     |
 | :----- | :--------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------- | :------------------------------------------------------------------------------------------------------------------------- |
 | **1**  | _Uber may include the full cart in the webhook; verify whether a Get Order call is still required._        | The `orders.notification` webhook delivers **only metadata** (`meta.resource_id`). It **does not** contain cart or line items. A `GET /eats/order/{id}` call is strictly required to fetch the cart. | **REJECTED / CHANGED**  | [Uber Eats orders.notification API Spec](https://developer.uber.com/docs/eats/references/api/webhooks.orders-notification) |
-| **2**  | _DoorDash Marketplace line items may use a top-level `items[]`._                                           | DoorDash Marketplace line items are nested under `order.items[]`, not top-level `items[]`. Top-level payloads only contain `event` and `order`.                                                      | **REJECTED / CHANGED**  | [DoorDash Order Integration Spec](https://developer.doordash.com/en-US/docs/marketplace/how_to/order_integration/)         |
+| **2**  | _DoorDash Marketplace line items may use a top-level `items[]`._                                           | In the official DoorDash Marketplace specification (`sample.json`), line items are nested under `order.categories[].items[]`, not top-level `items[]`. Top-level payloads only contain `event` and `order`. | **REJECTED / CHANGED**  | [DoorDash Order Integration Spec](https://developer.doordash.com/en-US/docs/marketplace/how_to/order_integration/)         |
 | **3**  | _Verify which DoorDash monetary field should become total_cents and whether tax is included._            | DoorDash supplies integer cents for subtotal and tax (tax is not included in subtotal). tip_amount is optional (default 0 for DoorDash fulfillment). If discounts apply, total_discount_amount must be subtracted. Canonical total_cents is: subtotal + tax + (tip_amount \|\| 0) - (total_discount_amount \|\| 0). | **VERIFIED & REFINED** | DoorDash Marketplace Order API Specification / Pricing Schema                                                             |
 | **4**  | _Verify Uber webhook signature generation and the `X-Uber-Signature` header._                              | Uber signs payloads using HMAC-SHA256 hex digest of the raw body using the app's `client_secret` in the `X-Uber-Signature` header.                                                                   | **VERIFIED AS CORRECT** | Uber Eats Webhook Security Documentation                                                                                   |
 | **5**  | _Verify the exact Uber webhook response status/body._                                                      | The webhook receiver must respond with HTTP `200 OK` and an empty body (`{}`) immediately to avoid retries.                                                                                          | **VERIFIED AS CORRECT** | Uber Eats Webhook Acknowledgment Spec                                                                                      |

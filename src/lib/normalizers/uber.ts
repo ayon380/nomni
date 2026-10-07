@@ -50,43 +50,12 @@ export function resolveUberOrderDetails(webhookPayload: Record<string, unknown>)
     return wp;
   }
 
+  const sampleOrderPath = path.join(process.cwd(), 'fixtures', 'uber', 'sample_order.json');
+  if (fs.existsSync(sampleOrderPath)) {
+    return JSON.parse(fs.readFileSync(sampleOrderPath, 'utf-8'));
+  }
+
   const resourceId = wp.meta?.resource_id;
-  const fixturesDir = path.join(process.cwd(), 'fixtures', 'uber');
-
-  // Try to find matching fixture by order ID
-  if (resourceId) {
-    if (resourceId === '153dd7f1-339d-4619-940c-418943c14636') {
-      const sampleOrderPath = path.join(fixturesDir, 'sample_order.json');
-      if (fs.existsSync(sampleOrderPath)) {
-        return JSON.parse(fs.readFileSync(sampleOrderPath, 'utf-8'));
-      }
-    }
-
-    const specificPath = path.join(fixturesDir, `get_order_${resourceId}.json`);
-    if (fs.existsSync(specificPath)) {
-      return JSON.parse(fs.readFileSync(specificPath, 'utf-8'));
-    }
-
-    if (resourceId === 'e4b219a8-98c4-4211-9a73-8109bfca3301') {
-      const sample2 = path.join(fixturesDir, 'get_order_sample_2.json');
-      if (fs.existsSync(sample2)) {
-        return JSON.parse(fs.readFileSync(sample2, 'utf-8'));
-      }
-    }
-  }
-
-  // Check official sample_order.json if present
-  const sampleOrder = path.join(fixturesDir, 'sample_order.json');
-  if (fs.existsSync(sampleOrder)) {
-    return JSON.parse(fs.readFileSync(sampleOrder, 'utf-8'));
-  }
-
-  // Default fallback to the primary official Get Order sample fixture
-  const defaultSample = path.join(fixturesDir, 'get_order_sample.json');
-  if (fs.existsSync(defaultSample)) {
-    return JSON.parse(fs.readFileSync(defaultSample, 'utf-8'));
-  }
-
   throw new Error(`Could not resolve Uber Get Order details for resource_id: ${resourceId}`);
 }
 

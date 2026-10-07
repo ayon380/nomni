@@ -48,53 +48,25 @@ class OrderStore {
     // 1. Seed Uber Eats Official Sample Order (Larry - Muffin, Coffee, Donut)
     try {
       const samplePath = path.join(fixturesDir, 'uber', 'sample_order.json');
-      const fallbackPath = path.join(fixturesDir, 'uber', 'get_order_sample.json');
-      const targetPath = fs.existsSync(samplePath) ? samplePath : fallbackPath;
-      if (fs.existsSync(targetPath)) {
-        const uberJson = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
+      if (fs.existsSync(samplePath)) {
+        const uberJson = JSON.parse(fs.readFileSync(samplePath, 'utf-8'));
         const uberOrder = normalizeUberOrder({ meta: { resource_id: uberJson.id } }, uberJson);
         this.orders.set(uberOrder.id, uberOrder);
       }
     } catch (e) {
-      console.warn('Could not seed Uber sample 1:', e);
+      console.warn('Could not seed Uber sample:', e);
     }
 
     // 2. Seed DoorDash Official Sample Order (Kelley W. - Burrito Scram-Bowl)
     try {
       const samplePath = path.join(fixturesDir, 'doordash', 'sample.json');
-      const fallbackPath = path.join(fixturesDir, 'doordash', 'webhook_order_create.json');
-      const targetPath = fs.existsSync(samplePath) ? samplePath : fallbackPath;
-      if (fs.existsSync(targetPath)) {
-        const ddJson = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
+      if (fs.existsSync(samplePath)) {
+        const ddJson = JSON.parse(fs.readFileSync(samplePath, 'utf-8'));
         const ddOrder = normalizeDoorDashOrder(ddJson);
         this.orders.set(ddOrder.id, ddOrder);
       }
     } catch (e) {
-      console.warn('Could not seed DoorDash sample 1:', e);
-    }
-
-    // 3. Seed Uber Eats Sample Order 2 (Alex Chen)
-    try {
-      const uber2SamplePath = path.join(fixturesDir, 'uber', 'get_order_sample_2.json');
-      if (fs.existsSync(uber2SamplePath)) {
-        const uber2Json = JSON.parse(fs.readFileSync(uber2SamplePath, 'utf-8'));
-        const uber2Order = normalizeUberOrder({ meta: { resource_id: uber2Json.id } }, uber2Json);
-        this.orders.set(uber2Order.id, uber2Order);
-      }
-    } catch (e) {
-      console.warn('Could not seed Uber sample 2:', e);
-    }
-
-    // 4. Seed DoorDash Sample Order 2 (Elena Rostova)
-    try {
-      const dd2SamplePath = path.join(fixturesDir, 'doordash', 'webhook_order_create_2.json');
-      if (fs.existsSync(dd2SamplePath)) {
-        const dd2Json = JSON.parse(fs.readFileSync(dd2SamplePath, 'utf-8'));
-        const dd2Order = normalizeDoorDashOrder(dd2Json);
-        this.orders.set(dd2Order.id, dd2Order);
-      }
-    } catch (e) {
-      console.warn('Could not seed DoorDash sample 2:', e);
+      console.warn('Could not seed DoorDash sample:', e);
     }
   }
 

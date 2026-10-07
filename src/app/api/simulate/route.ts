@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
         consumer: {
           first_name: cust.name.split(' ')[0],
           last_name: cust.name.split(' ')[1] || '',
-          phone_number: cust.phone,
+          phone: cust.phone,
         },
         items: [
           {
