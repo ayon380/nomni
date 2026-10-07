@@ -2,48 +2,51 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ChefHat, Radio, ArrowUpRight } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
+import { Radio, Keyboard } from 'lucide-react';
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/[0.06] bg-zinc-950/75 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b transition-colors duration-200 border-[#E8E2D1] dark:border-white/[0.08] bg-[#FAF7E9]/85 dark:bg-[#101216]/85 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand */}
+        {/* Nomni Brand Header */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 p-0.5 shadow-lg shadow-violet-500/20 group-hover:scale-105 transition-transform duration-200">
-            <div className="w-full h-full bg-zinc-950 rounded-[10px] flex items-center justify-center">
-              <ChefHat className="w-4 h-4 text-violet-400" />
-            </div>
+          <div className="w-9 h-9 rounded-xl bg-[#0E3727] dark:bg-[#181B20] border border-[#2AC864]/30 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-200">
+            <span className="font-bold text-lg text-[#2AC864] font-display">n</span>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-base tracking-tight text-white">nomni</span>
-              <span className="text-[10px] uppercase font-mono tracking-widest px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20">
+              <span className="font-bold text-lg tracking-tight text-[#0E3727] dark:text-[#F4F4F6] font-display">
+                nomni
+              </span>
+              <span className="text-[10px] uppercase font-mono font-semibold tracking-wider px-2 py-0.5 rounded-full bg-[#0E3727]/10 dark:bg-[#2AC864]/15 text-[#0E3727] dark:text-[#2AC864] border border-[#0E3727]/15 dark:border-[#2AC864]/30">
                 Kitchen OS
               </span>
             </div>
-            <p className="text-xs text-zinc-400 font-normal">Marketplace Orders Unified Ticket</p>
+            <p className="text-[11px] text-[#4A4E57] dark:text-[#8D919C]">
+              Unified Marketplace Ingestion
+            </p>
           </div>
         </Link>
 
-        {/* Status / Live Badge */}
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/80 border border-white/[0.08] text-xs text-zinc-300">
-            <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-            <span>Ingest Active</span>
-            <span className="text-zinc-600">•</span>
-            <span className="text-zinc-400 font-mono text-[11px]">POST /api/webhooks</span>
+        {/* Status Indicators & Controls */}
+        <div className="flex items-center gap-3">
+          {/* Keyboard navigation helper pill */}
+          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-[#EFE9D7] dark:bg-white/[0.05] text-[#4A4E57] dark:text-zinc-400 border border-[#E0D8C3] dark:border-white/[0.06]">
+            <Keyboard className="w-3.5 h-3.5 text-[#0E3727] dark:text-[#2AC864]" />
+            <span>Use ↑ ↓ & Enter</span>
           </div>
 
-          <a
-            href="https://github.com"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors py-1.5 px-3 rounded-lg hover:bg-white/[0.04]"
-          >
-            <span>v1.0.0</span>
-            <ArrowUpRight className="w-3 h-3 text-zinc-500" />
-          </a>
+          {/* Ingest active badge */}
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-[#EFE9D7] dark:bg-zinc-900 border border-[#E0D8C3] dark:border-white/[0.08] text-[#0E3727] dark:text-zinc-200">
+            <Radio className="w-3.5 h-3.5 text-[#2AC864] animate-pulse" />
+            <span>API Online</span>
+            <span className="text-[#B3AC99] dark:text-zinc-600">•</span>
+            <span className="font-mono text-[11px] text-[#4A4E57] dark:text-zinc-400">POST /api/webhooks</span>
+          </div>
+
+          {/* Light / Dark Mode Toggle */}
+          <ThemeToggle />
         </div>
       </div>
     </header>

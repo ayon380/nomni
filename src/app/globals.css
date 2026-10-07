@@ -1,24 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #09090b;
-  --foreground: #f4f4f5;
-  --card: rgba(18, 18, 23, 0.7);
-  --card-border: rgba(255, 255, 255, 0.08);
-  --accent: #8b5cf6;
-  --accent-glow: rgba(139, 92, 246, 0.15);
+  /* Nomni Official Light Mode (Cream & Forest Green) */
+  --bg-canvas: #FAF7E9;
+  --bg-surface: #FFFFFF;
+  --bg-surface-glass: rgba(255, 255, 255, 0.82);
+  --bg-muted: #F3EFE0;
+  --border-subtle: #E8E2D1;
+  --border-hover: #D5CEB8;
+  --text-primary: #0E3727;
+  --text-secondary: #4A4E57;
+  --text-muted: #7F818A;
+  --brand-forest: #0E3727;
+  --brand-mint: #2AC864;
+  --brand-mint-glow: rgba(42, 200, 100, 0.25);
+  --card-shadow: 0 4px 20px -2px rgba(14, 55, 39, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+  --pill-active-bg: #0E3727;
+  --pill-active-text: #FFFFFF;
+}
+
+html.dark {
+  /* Nomni Midnight Dark Mode (Obsidian & Mint Accent) */
+  --bg-canvas: #101216;
+  --bg-surface: #181B20;
+  --bg-surface-glass: rgba(24, 27, 32, 0.78);
+  --bg-muted: #1E2228;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.16);
+  --text-primary: #F4F4F6;
+  --text-secondary: #A1A5B0;
+  --text-muted: #6B707B;
+  --brand-forest: #144A34;
+  --brand-mint: #2AC864;
+  --brand-mint-glow: rgba(42, 200, 100, 0.25);
+  --card-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.5);
+  --pill-active-bg: #2AC864;
+  --pill-active-text: #0E3727;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  letter-spacing: -0.01em;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.015em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Apple-style ultra-thin scrollbar */
+h1, h2, .font-display {
+  font-family: 'Fraunces', serif;
+  font-optical-sizing: auto;
+}
+
+code, kbd, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Glassmorphism panel */
+.nomni-glass {
+  background: var(--bg-surface-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--card-shadow);
+}
+
+/* Transition pending animation shimmer */
+.transition-pending {
+  opacity: 0.6;
+  pointer-events: none;
+  filter: blur(0.5px);
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+/* Ultra-refined scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -27,31 +84,14 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(127, 129, 138, 0.3);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(127, 129, 138, 0.5);
 }
 
-/* Glassmorphism utility */
-.glass-panel {
-  background: rgba(18, 18, 23, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.glass-dropdown {
-  background: rgba(24, 24, 30, 0.85);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
-}
-
-/* Smooth focus rings */
-*:focus-visible {
-  outline: 2px solid #8b5cf6;
-  outline-offset: 2px;
+/* Tabular numbers for currencies and counts */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }

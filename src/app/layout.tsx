@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Header } from '@/components/Header';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'Nomni — Unified Kitchen Marketplace Orders',
@@ -13,12 +14,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-[#09090b] text-zinc-100 antialiased selection:bg-violet-500/30 selection:text-violet-200">
-        <Header />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
-        </main>
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen antialiased">
+        <ThemeProvider>
+          <Header />
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {children}
+          </main>
+        </ThemeProvider>
       </body>
     </html>
   );
