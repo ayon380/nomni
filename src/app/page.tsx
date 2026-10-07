@@ -192,70 +192,16 @@ function OrdersListContent() {
   const simulateIngest = async (fixtureType: 'uber' | 'doordash') => {
     setSimulating(fixtureType);
     try {
-      let payload: Record<string, any>;
-      let headers: Record<string, string> = { 'Content-Type': 'application/json' };
-
-      if (fixtureType === 'uber') {
-        payload = {
-          event_id: `demo-${Date.now()}`,
-          event_time: Math.floor(Date.now() / 1000),
-          event_type: 'orders.notification',
-          meta: {
-            resource_id: 'f9f363d1-e1c2-4595-b477-c649845bc953',
-            user_id: 'user_eats_9981',
-          },
-          resource_href: 'https://api.uber.com/v2/eats/order/f9f363d1-e1c2-4595-b477-c649845bc953',
-        };
-        const crypto = await import('crypto');
-        const hmac = crypto.createHmac('sha256', 'uber_webhook_secret_key');
-        hmac.update(JSON.stringify(payload));
-        headers['x-uber-signature'] = hmac.digest('hex');
-      } else {
-        payload = {
-          event: {
-            type: 'OrderCreate',
-            status: 'NEW',
-            created_at: new Date().toISOString(),
-          },
-          order: {
-            id: `DD-DEMO-${Math.floor(1000 + Math.random() * 9000)}`,
-            display_id: `DD-${Math.floor(1000 + Math.random() * 9000)}`,
-            subtotal: 2850,
-            tax: 285,
-            tip_amount: 400,
-            currency: 'USD',
-            consumer: {
-              first_name: 'Jessica',
-              last_name: 'Taylor',
-              phone_number: '+1 415 555 9821',
-            },
-            items: [
-              {
-                name: 'Spicy Miso Ramen',
-                price: 1850,
-                quantity: 1,
-                special_instructions: 'Extra ajitsuke tamago',
-              },
-              {
-                name: 'Iced Green Tea',
-                price: 500,
-                quantity: 2,
-              },
-            ],
-          },
-        };
-        headers['authorization'] = 'Bearer doordash_marketplace_token_2026';
-      }
-
-      await fetch('/api/webhooks', {
+      const res = await fetch(`/api/simulate?provider=${fixtureType}`, {
         method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
       });
-
+      if (!res.ok) {
+        throw new Error(`Simulation failed: HTTP ${res.status}`);
+      }
       await fetchOrders();
-    } catch (e) {
+    } catch (e: any) {
       console.error('Simulation failed', e);
+      alert(`Simulation failed: ${e.message}`);
     } finally {
       setSimulating(null);
     }
