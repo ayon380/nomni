@@ -24,6 +24,8 @@
 .DS_Store
 *.pem
 /data/
+learning/
+data.md
 
 # debug
 npm-debug.log*
