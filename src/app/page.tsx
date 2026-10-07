@@ -276,7 +276,7 @@ function OrdersListContent() {
             <select
               value={provider}
               onChange={(e) => handleProviderChange(e.target.value)}
-              className="w-full py-2 px-3 bg-white/70 dark:bg-black/30 border border-[#E8E2D1] dark:border-white/[0.1] rounded-xl text-xs font-medium text-[#0E3727] dark:text-zinc-200 focus:border-[#2AC864] outline-none transition-colors"
+              className="w-full py-2 px-3 bg-white/70 dark:bg-black/30 border border-[#E8E2D1] dark:border-white/[0.1] rounded-xl text-xs font-medium text-[#0E3727] dark:text-zinc-200 focus:border-[#2AC864] outline-none transition-colors [&>option]:bg-[#FAF7E9] dark:[&>option]:bg-[#181B20] [&>option]:text-[#0E3727] dark:[&>option]:text-zinc-200"
             >
               <option value="all">All Marketplaces</option>
               <option value="uber_eats">Uber Eats</option>
@@ -289,7 +289,7 @@ function OrdersListContent() {
             <select
               value={status}
               onChange={(e) => handleStatusChange(e.target.value)}
-              className="w-full py-2 px-3 bg-white/70 dark:bg-black/30 border border-[#E8E2D1] dark:border-white/[0.1] rounded-xl text-xs font-medium text-[#0E3727] dark:text-zinc-200 focus:border-[#2AC864] outline-none transition-colors"
+              className="w-full py-2 px-3 bg-white/70 dark:bg-black/30 border border-[#E8E2D1] dark:border-white/[0.1] rounded-xl text-xs font-medium text-[#0E3727] dark:text-zinc-200 focus:border-[#2AC864] outline-none transition-colors [&>option]:bg-[#FAF7E9] dark:[&>option]:bg-[#181B20] [&>option]:text-[#0E3727] dark:[&>option]:text-zinc-200"
             >
               <option value="all">All Ticket Statuses</option>
               <option value="RECEIVED">Received</option>
