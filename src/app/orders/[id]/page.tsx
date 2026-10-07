@@ -61,9 +61,7 @@ function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
       })
       .catch((err: unknown) => {
         if (!ignore) {
-          if (!cachedOrder) {
-            setError(err instanceof Error ? err.message : 'Failed to load order');
-          }
+          setError(err instanceof Error ? err.message : 'Failed to load order');
           setLoading(false);
         }
       });
@@ -71,7 +69,7 @@ function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
     return () => {
       ignore = true;
     };
-  }, [id, updateOrderInStore, cachedOrder]);
+  }, [id, updateOrderInStore]);
 
   // Advance status forward with useTransition
   const handleAdvanceStatus = () => {

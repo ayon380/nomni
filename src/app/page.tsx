@@ -42,7 +42,6 @@ function OrdersListContent() {
   const loading = useOrdersStore((state) => state.loading);
   const error = useOrdersStore((state) => state.error);
   const fetchOrders = useOrdersStore((state) => state.fetchOrders);
-  const hasLoadedOnce = useOrdersStore((state) => state.hasLoadedOnce);
 
   // Keyboard navigation index (-1 when none selected)
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -84,11 +83,8 @@ function OrdersListContent() {
 
   // Fetch or revalidate orders on filter change
   useEffect(() => {
-    fetchOrders(
-      { provider, status, search: searchParam, sort },
-      hasLoadedOnce
-    );
-  }, [provider, status, searchParam, sort, fetchOrders, hasLoadedOnce]);
+    fetchOrders({ provider, status, search: searchParam, sort });
+  }, [provider, status, searchParam, sort, fetchOrders]);
 
   // Navigate to Detail using useTransition
   const navigateToDetail = useCallback(

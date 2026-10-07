@@ -26,14 +26,15 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
       orders: state.orders.map((ord) => (ord.id === updated.id ? updated : ord)),
     })),
 
-  fetchOrders: async (filters, silent = false) => {
+  fetchOrders: async (filters, silent) => {
+    const isSilent = silent !== undefined ? silent : get().hasLoadedOnce;
     const { activeAbortController } = get();
     if (activeAbortController) {
       activeAbortController.abort();
     }
     const controller = new AbortController();
 
-    if (!silent) {
+    if (!isSilent) {
       set({ loading: true, error: null, activeAbortController: controller });
     } else {
       set({ activeAbortController: controller, error: null });
