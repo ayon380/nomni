@@ -9,6 +9,7 @@ Built for **Nomni Kitchen OS**.
 ## 1. Quickstart & Run Instructions
 
 ### Prerequisites
+
 - Node.js 18+ (tested on Node v26)
 - npm 9+
 
@@ -26,10 +27,11 @@ npm run dev
 ```
 
 The application runs on **http://localhost:3000**:
-* **React Admin UI**: `http://localhost:3000`
-* **Single Ingest Webhook API**: `POST http://localhost:3000/api/webhooks`
-* **Orders Query API**: `GET http://localhost:3000/api/orders`
-* **Order Status Patch API**: `PATCH http://localhost:3000/api/orders/:id`
+
+- **React Admin UI**: `http://localhost:3000`
+- **Single Ingest Webhook API**: `POST http://localhost:3000/api/webhooks`
+- **Orders Query API**: `GET http://localhost:3000/api/orders`
+- **Order Status Patch API**: `PATCH http://localhost:3000/api/orders/:id`
 
 ---
 
@@ -49,9 +51,10 @@ curl -i -X POST http://localhost:3000/api/webhooks \
 ```
 
 **Expected Response**:
-* **HTTP Status**: `200 OK`
-* **Body**: `{}` (Empty JSON object per official Uber documentation)
-* **Headers**: `x-nomni-order-id: ord_uber_f9f363d1e1c2`, `x-nomni-upsert: true`
+
+- **HTTP Status**: `200 OK`
+- **Body**: `{}` (Empty JSON object per official Uber documentation)
+- **Headers**: `x-nomni-order-id: ord_uber_f9f363d1e1c2`, `x-nomni-upsert: true`
 
 ---
 
@@ -67,9 +70,10 @@ curl -i -X POST http://localhost:3000/api/webhooks \
 ```
 
 **Expected Response**:
-* **HTTP Status**: `200 OK`
-* **Body**: `{"order_id":"DD-2019","status":"acknowledged"}`
-* **Headers**: `x-nomni-order-id: ord_dd_DD88492019`, `x-nomni-upsert: true`
+
+- **HTTP Status**: `200 OK`
+- **Body**: `{"order_id":"DD-2019","status":"acknowledged"}`
+- **Headers**: `x-nomni-order-id: ord_dd_DD88492019`, `x-nomni-upsert: true`
 
 ---
 
@@ -77,23 +81,23 @@ curl -i -X POST http://localhost:3000/api/webhooks \
 
 The internal model is canonical and belongs to Nomni, decoupling internal operations from marketplace schema changes.
 
-| Canonical Internal Field | Uber Eats Source Field | DoorDash Marketplace Source Field | Notes |
-| :--- | :--- | :--- | :--- |
-| `id` | Generated (`ord_uber_<id>`) | Generated (`ord_dd_<id>`) | Unique internal UUID/prefixed ID |
-| `provider` | Normalized `'uber_eats'` | Normalized `'doordash'` | Canonical provider discriminator |
-| `external_order_id` | `display_id` (fallback: `id`) | `order.display_id` (fallback: `order.id`) | Display code seen by staff & dashers |
-| `status` | `current_state` (e.g. `CREATED` → `RECEIVED`) | `event.status` / `order.status` (`NEW` → `RECEIVED`) | Normalized into internal lifecycle |
-| `customer.name` | `eater.first_name` + `eater.last_name` | `order.consumer.first_name` + `last_name` | Customer display name |
-| `customer.phone` | `eater.phone` | `order.consumer.phone_number` | Customer contact / masked number |
-| `line_items[].name` | `cart.items[].title` | `order.items[].name` | Product name |
-| `line_items[].quantity` | `cart.items[].quantity` | `order.items[].quantity` | Count of units |
-| `line_items[].unit_price` | `cart.items[].price.unit_price.amount` | `order.items[].price` | Integer in cents |
-| `line_items[].line_total` | `cart.items[].price.total_price.amount` | `quantity * price` | Integer in cents |
-| `line_items[].special_instructions` | `cart.items[].special_instructions` | `order.items[].special_instructions` | Modifiers / kitchen notes |
-| `total_cents` | `payment.charges.total.amount` | `subtotal + tax + tip_amount` | Integer in cents |
-| `currency` | `payment.charges.total.currency_code` | `order.currency` | ISO currency (`AUD`, `USD`) |
-| `created_at` | `placed_at` | `event.created_at` | ISO 8601 timestamp string |
-| `raw_payload` | `{ webhook, get_order_details }` | Full webhook JSON payload | Stored for debugging & telemetry |
+| Canonical Internal Field            | Uber Eats Source Field                        | DoorDash Marketplace Source Field                    | Notes                                |
+| :---------------------------------- | :-------------------------------------------- | :--------------------------------------------------- | :----------------------------------- |
+| `id`                                | Generated (`ord_uber_<id>`)                   | Generated (`ord_dd_<id>`)                            | Unique internal UUID/prefixed ID     |
+| `provider`                          | Normalized `'uber_eats'`                      | Normalized `'doordash'`                              | Canonical provider discriminator     |
+| `external_order_id`                 | `display_id` (fallback: `id`)                 | `order.display_id` (fallback: `order.id`)            | Display code seen by staff & dashers |
+| `status`                            | `current_state` (e.g. `CREATED` → `RECEIVED`) | `event.status` / `order.status` (`NEW` → `RECEIVED`) | Normalized into internal lifecycle   |
+| `customer.name`                     | `eater.first_name` + `eater.last_name`        | `order.consumer.first_name` + `last_name`            | Customer display name                |
+| `customer.phone`                    | `eater.phone`                                 | `order.consumer.phone_number`                        | Customer contact / masked number     |
+| `line_items[].name`                 | `cart.items[].title`                          | `order.items[].name`                                 | Product name                         |
+| `line_items[].quantity`             | `cart.items[].quantity`                       | `order.items[].quantity`                             | Count of units                       |
+| `line_items[].unit_price`           | `cart.items[].price.unit_price.amount`        | `order.items[].price`                                | Integer in cents                     |
+| `line_items[].line_total`           | `cart.items[].price.total_price.amount`       | `quantity * price`                                   | Integer in cents                     |
+| `line_items[].special_instructions` | `cart.items[].special_instructions`           | `order.items[].special_instructions`                 | Modifiers / kitchen notes            |
+| `total_cents`                       | `payment.charges.total.amount`                | `subtotal + tax + tip_amount`                        | Integer in cents                     |
+| `currency`                          | `payment.charges.total.currency_code`         | `order.currency`                                     | ISO currency (`AUD`, `USD`)          |
+| `created_at`                        | `placed_at`                                   | `event.created_at`                                   | ISO 8601 timestamp string            |
+| `raw_payload`                       | `{ webhook, get_order_details }`              | Full webhook JSON payload                            | Stored for debugging & telemetry     |
 
 ---
 
@@ -101,18 +105,18 @@ The internal model is canonical and belongs to Nomni, decoupling internal operat
 
 Every working note in the brief was audited against the authoritative official documentation:
 
-| # | Working Note in Brief | Verification Finding | Verdict | Authoritative Overruling Documentation |
-| :- | :--- | :--- | :--- | :--- |
-| **1** | *Uber may include the full cart in the webhook; verify whether a Get Order call is still required.* | The `orders.notification` webhook delivers **only metadata** (`meta.resource_id`). It **does not** contain cart or line items. A `GET /eats/order/{id}` call is strictly required to fetch the cart. | **REJECTED / CHANGED** | [Uber Eats orders.notification API Spec](https://developer.uber.com/docs/eats/references/api/webhooks.orders-notification) |
-| **2** | *DoorDash Marketplace line items may use a top-level `items[]`.* | DoorDash Marketplace line items are nested under `order.items[]`, not top-level `items[]`. Top-level payloads only contain `event` and `order`. | **REJECTED / CHANGED** | [DoorDash Order Integration Spec](https://developer.doordash.com/en-US/docs/marketplace/how_to/order_integration/) |
-| **3** | *Verify which DoorDash monetary field should become `total_cents` and whether tax is included.* | DoorDash supplies integer cents for `subtotal`, `tax`, and `tip_amount`. The actual total charged is `subtotal + tax + tip_amount`. | **VERIFIED & CODIFIED** | DoorDash Developer Pricing Reference |
-| **4** | *Verify Uber webhook signature generation and the `X-Uber-Signature` header.* | Uber signs payloads using HMAC-SHA256 hex digest of the raw body using the app's `client_secret` in the `X-Uber-Signature` header. | **VERIFIED AS CORRECT** | Uber Eats Webhook Security Documentation |
-| **5** | *Verify the exact Uber webhook response status/body.* | The webhook receiver must respond with HTTP `200 OK` and an empty body (`{}`) immediately to avoid retries. | **VERIFIED AS CORRECT** | Uber Eats Webhook Acknowledgment Spec |
-| **6** | *DoorDash Drive webhooks are optional.* | DoorDash Drive is white-label fulfillment, whereas this integration handles DoorDash **Marketplace** orders (`OrderCreate`). Drive is completely out of scope. | **VERIFIED AS CORRECT** | DoorDash Developer Portal Matrix |
-| **7** | *Verify whether Uber webhook `meta.resource_id` corresponds to the Get Order id in the official examples.* | `meta.resource_id` in `orders.notification` is precisely the UUID used in `GET /eats/order/{order_id}`. | **VERIFIED AS CORRECT** | [Uber Eats Get Order API v2](https://developer.uber.com/docs/eats/references/api/v2/get-eats-order-orderid) |
-| **8** | *Do not rely on a provider query parameter for normal provider detection.* | Implemented zero-hint detection: detects provider purely by structural fingerprinting of the payload. | **VERIFIED AS CORRECT** | System Design Invariant |
-| **9** | *Verify the documented location of DoorDash customer phone data.* | Located under `order.consumer.phone_number`, often masked for privacy. | **VERIFIED AS CORRECT** | DoorDash Consumer Schema Spec |
-| **10** | *Normalize marketplace statuses into the internal status model where appropriate.* | Uber `CREATED` and DoorDash `NEW` map to canonical `RECEIVED`. Uber `ACCEPTED` and DoorDash `CONFIRMED` map to `CONFIRMED`. | **VERIFIED AS CORRECT** | Nomni Canonical Domain Spec |
+| #      | Working Note in Brief                                                                                      | Verification Finding                                                                                                                                                                                 | Verdict                 | Authoritative Overruling Documentation                                                                                     |
+| :----- | :--------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------- | :------------------------------------------------------------------------------------------------------------------------- |
+| **1**  | _Uber may include the full cart in the webhook; verify whether a Get Order call is still required._        | The `orders.notification` webhook delivers **only metadata** (`meta.resource_id`). It **does not** contain cart or line items. A `GET /eats/order/{id}` call is strictly required to fetch the cart. | **REJECTED / CHANGED**  | [Uber Eats orders.notification API Spec](https://developer.uber.com/docs/eats/references/api/webhooks.orders-notification) |
+| **2**  | _DoorDash Marketplace line items may use a top-level `items[]`._                                           | DoorDash Marketplace line items are nested under `order.items[]`, not top-level `items[]`. Top-level payloads only contain `event` and `order`.                                                      | **REJECTED / CHANGED**  | [DoorDash Order Integration Spec](https://developer.doordash.com/en-US/docs/marketplace/how_to/order_integration/)         |
+| **3**  | _Verify which DoorDash monetary field should become total_cents and whether tax is included._            | DoorDash supplies integer cents for subtotal and tax (tax is not included in subtotal). tip_amount is optional (default 0 for DoorDash fulfillment). If discounts apply, total_discount_amount must be subtracted. Canonical total_cents is: subtotal + tax + (tip_amount \|\| 0) - (total_discount_amount \|\| 0). | **VERIFIED & REFINED** | DoorDash Marketplace Order API Specification / Pricing Schema                                                             |
+| **4**  | _Verify Uber webhook signature generation and the `X-Uber-Signature` header._                              | Uber signs payloads using HMAC-SHA256 hex digest of the raw body using the app's `client_secret` in the `X-Uber-Signature` header.                                                                   | **VERIFIED AS CORRECT** | Uber Eats Webhook Security Documentation                                                                                   |
+| **5**  | _Verify the exact Uber webhook response status/body._                                                      | The webhook receiver must respond with HTTP `200 OK` and an empty body (`{}`) immediately to avoid retries.                                                                                          | **VERIFIED AS CORRECT** | Uber Eats Webhook Acknowledgment Spec                                                                                      |
+| **6**  | _DoorDash Drive webhooks are optional._                                                                    | DoorDash Drive is white-label fulfillment, whereas this integration handles DoorDash **Marketplace** orders (`OrderCreate`). Drive is completely out of scope.                                       | **VERIFIED AS CORRECT** | DoorDash Developer Portal Matrix                                                                                           |
+| **7**  | _Verify whether Uber webhook `meta.resource_id` corresponds to the Get Order id in the official examples._ | `meta.resource_id` in `orders.notification` is precisely the UUID used in `GET /eats/order/{order_id}`.                                                                                              | **VERIFIED AS CORRECT** | [Uber Eats Get Order API v2](https://developer.uber.com/docs/eats/references/api/v2/get-eats-order-orderid)                |
+| **8**  | _Do not rely on a provider query parameter for normal provider detection._                                 | Implemented zero-hint detection: detects provider purely by structural fingerprinting of the payload.                                                                                                | **VERIFIED AS CORRECT** | System Design Invariant                                                                                                    |
+| **9**  | _Verify the documented location of DoorDash customer phone data._                                          | Located under `order.consumer.phone`, often masked for privacy.                                                                                                                                      | **VERIFIED AS CORRECT** | DoorDash Consumer Schema Spec                                                                                              |
+| **10** | _Normalize marketplace statuses into the internal status model where appropriate._                         | Uber `CREATED` and DoorDash `NEW` map to canonical `RECEIVED`. Uber `ACCEPTED` and DoorDash `CONFIRMED` map to `CONFIRMED`.                                                                          | **VERIFIED AS CORRECT** | Nomni Canonical Domain Spec                                                                                                |
 
 ---
 

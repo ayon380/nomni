@@ -84,7 +84,8 @@ export function normalizeDoorDashOrder(payload: Record<string, unknown>): Intern
   const subtotal = typeof order.subtotal === 'number' ? order.subtotal : 0;
   const tax = typeof order.tax === 'number' ? order.tax : 0;
   const tip = typeof order.tip_amount === 'number' ? order.tip_amount : 0;
-  const totalCents = (subtotal + tax + tip) ||
+  const discount = typeof order.total_discount_amount === 'number' ? order.total_discount_amount : 0;
+  const totalCents = (subtotal + tax + tip - discount) ||
     line_items.reduce((acc: number, it: { line_total: number }) => acc + it.line_total, 0);
 
   const currency = order.currency || 'USD';
