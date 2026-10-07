@@ -81,23 +81,23 @@ curl -i -X POST http://localhost:3000/api/webhooks \
 
 The internal model is canonical and belongs to Nomni, decoupling internal operations from marketplace schema changes.
 
-| Canonical Internal Field            | Uber Eats Source Field                        | DoorDash Marketplace Source Field                    | Notes                                |
-| :---------------------------------- | :-------------------------------------------- | :--------------------------------------------------- | :----------------------------------- |
-| `id`                                | Generated (`ord_uber_<id>`)                   | Generated (`ord_dd_<id>`)                            | Unique internal UUID/prefixed ID     |
-| `provider`                          | Normalized `'uber_eats'`                      | Normalized `'doordash'`                              | Canonical provider discriminator     |
-| `external_order_id`                 | `display_id` (fallback: `id`)                 | `order.display_id` (fallback: `order.id`)            | Display code seen by staff & dashers |
-| `status`                            | `current_state` (e.g. `CREATED` → `RECEIVED`) | `event.status` / `order.status` (`NEW` → `RECEIVED`) | Normalized into internal lifecycle   |
-| `customer.name`                     | `eater.first_name` (+ optional `last_name`)   | `order.consumer.first_name` + `last_name`            | Customer display name                |
-| `customer.phone`                    | `eater.phone` / `eater.phone_number`          | `order.consumer.phone` / `phone_number`              | Customer contact / masked number     |
-| `line_items[].name`                 | `cart.items[].title`                          | `order.categories[].items[].name` / `items[].name`   | Product name                         |
-| `line_items[].quantity`             | `cart.items[].quantity`                       | `item.quantity`                                      | Count of units                       |
-| `line_items[].unit_price`           | `cart.items[].price.unit_price.amount`        | `item.price`                                         | Integer in cents                     |
-| `line_items[].line_total`           | `cart.items[].price.total_price.amount`       | `item.price * quantity`                              | Integer in cents                     |
-| `line_items[].special_instructions` | `cart.items[].special_instructions`           | `item.special_instructions`                          | Modifiers / kitchen notes            |
-| `total_cents`                       | `payment.charges.total.amount`                | `subtotal + tax + tip - discount`                    | Integer in cents                     |
-| `currency`                          | `payment.charges.total.currency_code`         | `order.currency` (default `'USD'`)                   | ISO currency (`AUD`, `USD`)          |
-| `created_at`                        | `placed_at`                                   | `estimated_pickup_time` / `event.created_at`         | ISO 8601 timestamp string            |
-| `raw_payload`                       | `{ webhook, get_order_details }`              | Full webhook JSON payload                            | Stored for debugging & telemetry     |
+| Canonical Internal Field            | Uber Eats Source Field (`sample_order.json`)  | DoorDash Marketplace Source Field (`sample.json`) | Sample Example Values                   | Notes                                                |
+| :---------------------------------- | :-------------------------------------------- | :------------------------------------------------- | :-------------------------------------- | :--------------------------------------------------- |
+| `id`                                | `ord_uber_` + `order.id.slice(0, 12)`         | `ord_dd_` + `order.id`                             | `ord_uber_f9f363d1e1c2`, `ord_dd_abc12345` | Unique internal prefixed ID                         |
+| `provider`                          | Normalized `'uber_eats'`                      | Normalized `'doordash'`                            | `'uber_eats'`, `'doordash'`             | Canonical provider discriminator                     |
+| `external_order_id`                 | `display_id` (fallback: `id`)                 | `order.id` (fallback: `order.display_id`)          | `'BC953'`, `'abc12345'`                 | Display code seen by staff & delivery couriers       |
+| `status`                            | `current_state` (`CREATED` → `RECEIVED`)      | `event.status` (`NEW` → `RECEIVED`)                | `'RECEIVED'`                            | Normalized into Nomni internal lifecycle             |
+| `customer.name`                     | `eater.first_name` (+ optional `last_name`)   | `order.consumer.first_name` + `last_name`          | `'Larry'`, `'Kelley W.'`                | Customer display name (supports single-name eaters)  |
+| `customer.phone`                    | `eater.phone`                                 | `order.consumer.phone`                             | `'+1 555-555-5555'`, `'+18559731040'`   | Customer contact phone                               |
+| `line_items[].name`                 | `cart.items[].title`                          | `order.categories[].items[].name`                  | `'Fresh-baked muffin'`, `'Burrito Scram-Bowl'` | Product item name                                 |
+| `line_items[].quantity`             | `cart.items[].quantity`                       | `item.quantity`                                    | `1`, `2`                                | Item unit count                                      |
+| `line_items[].unit_price`           | `cart.items[].price.unit_price.amount`        | `item.price`                                       | `350` ($3.50), `0`                      | Integer in cents                                     |
+| `line_items[].line_total`           | `cart.items[].price.total_price.amount`       | `item.price * item.quantity`                       | `350`, `0`                              | Integer in cents                                     |
+| `line_items[].special_instructions` | `cart.items[].special_instructions`           | `item.special_instructions`                        | `'make it iced please'`                 | Kitchen prep instructions                            |
+| `total_cents`                       | `payment.charges.total.amount`                | `subtotal + tax + tip - discount`                  | `1399` ($13.99), `2300` ($23.00)        | Total amount in integer cents                        |
+| `currency`                          | `payment.charges.total.currency_code`         | `order.currency` (default `'USD'`)                 | `'USD'`                                 | ISO 4217 currency code                               |
+| `created_at`                        | `placed_at`                                   | `order.estimated_pickup_time`                      | `'2019-05-14T15:16:54-05:00'`           | ISO 8601 timestamp string                            |
+| `raw_payload`                       | `{ webhook, get_order_details }`              | Full webhook JSON payload                          | Complete JSON payload                   | Sequestered in expandable UI debug accordion         |
 
 ---
 
