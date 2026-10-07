@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nomni — Marketplace Order Unified System
 
-## Getting Started
+A unified marketplace-order platform that ingests webhooks from **Uber Eats** and **DoorDash** into a canonical internal kitchen ticket, with an Apple-grade minimalist dark admin dashboard.
 
-First, run the development server:
+Built for **Nomni Kitchen OS**.
+
+---
+
+## 1. Quickstart & Run Instructions
+
+### Prerequisites
+- Node.js 18+ (tested on Node v26)
+- npm 9+
+
+### Installation & Run
 
 ```bash
+# 1. Install dependencies
+npm install
+
+# 2. Run automated verification suite (tests detection, auth, normalization, upsert)
+npx tsx scripts/verify.ts
+
+# 3. Start development server (API + React Admin)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The application runs on **http://localhost:3000**:
+* **React Admin UI**: `http://localhost:3000`
+* **Single Ingest Webhook API**: `POST http://localhost:3000/api/webhooks`
+* **Orders Query API**: `GET http://localhost:3000/api/orders`
+* **Order Status Patch API**: `PATCH http://localhost:3000/api/orders/:id`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 2. Working Curl Examples
 
-## Learn More
+Both curls target the single unified ingest endpoint: `POST http://localhost:3000/api/webhooks`.
 
-To learn more about Next.js, take a look at the following resources:
+### A. Uber Eats Webhook Ingestion
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Uber Eats requires an HMAC-SHA256 signature in the `X-Uber-Signature` header computed from the raw request body using the webhook secret (default: `uber_webhook_secret_key`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+curl -i -X POST http://localhost:3000/api/webhooks \
+  -H "Content-Type: application/json" \
+  -H "X-Uber-Signature: ea12e3f8e836125fec601b75beb9fb7769fdb3e58637149111fb65bc665050b2" \
+  --data-binary @fixtures/uber/webhook_notification.json
+```
 
-## Deploy on Vercel
+**Expected Response**:
+* **HTTP Status**: `200 OK`
+* **Body**: `{}` (Empty JSON object per official Uber documentation)
+* **Headers**: `x-nomni-order-id: ord_uber_f9f363d1e1c2`, `x-nomni-upsert: true`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### B. DoorDash Marketplace Webhook Ingestion
+
+DoorDash Marketplace requires an `Authorization: Bearer <DOORDASH_TOKEN>` header (default: `doordash_marketplace_token_2026`).
+
+```bash
+curl -i -X POST http://localhost:3000/api/webhooks \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer doordash_marketplace_token_2026" \
+  --data-binary @fixtures/doordash/webhook_order_create.json
+```
+
+**Expected Response**:
+* **HTTP Status**: `200 OK`
+* **Body**: `{"order_id":"DD-2019","status":"acknowledged"}`
+* **Headers**: `x-nomni-order-id: ord_dd_DD88492019`, `x-nomni-upsert: true`
+
+---
+
+## 3. Provider Field → Internal Field Mapping Table
+
+The internal model is canonical and belongs to Nomni, decoupling internal operations from marketplace schema changes.
+
+| Canonical Internal Field | Uber Eats Source Field | DoorDash Marketplace Source Field | Notes |
+| :--- | :--- | :--- | :--- |
+| `id` | Generated (`ord_uber_<id>`) | Generated (`ord_dd_<id>`) | Unique internal UUID/prefixed ID |
+| `provider` | Normalized `'uber_eats'` | Normalized `'doordash'` | Canonical provider discriminator |
+| `external_order_id` | `display_id` (fallback: `id`) | `order.display_id` (fallback: `order.id`) | Display code seen by staff & dashers |
+| `status` | `current_state` (e.g. `CREATED` → `RECEIVED`) | `event.status` / `order.status` (`NEW` → `RECEIVED`) | Normalized into internal lifecycle |
+| `customer.name` | `eater.first_name` + `eater.last_name` | `order.consumer.first_name` + `last_name` | Customer display name |
+| `customer.phone` | `eater.phone` | `order.consumer.phone_number` | Customer contact / masked number |
+| `line_items[].name` | `cart.items[].title` | `order.items[].name` | Product name |
+| `line_items[].quantity` | `cart.items[].quantity` | `order.items[].quantity` | Count of units |
+| `line_items[].unit_price` | `cart.items[].price.unit_price.amount` | `order.items[].price` | Integer in cents |
+| `line_items[].line_total` | `cart.items[].price.total_price.amount` | `quantity * price` | Integer in cents |
+| `line_items[].special_instructions` | `cart.items[].special_instructions` | `order.items[].special_instructions` | Modifiers / kitchen notes |
+| `total_cents` | `payment.charges.total.amount` | `subtotal + tax + tip_amount` | Integer in cents |
+| `currency` | `payment.charges.total.currency_code` | `order.currency` | ISO currency (`AUD`, `USD`) |
+| `created_at` | `placed_at` | `event.created_at` | ISO 8601 timestamp string |
+| `raw_payload` | `{ webhook, get_order_details }` | Full webhook JSON payload | Stored for debugging & telemetry |
+
+---
+
+## 4. Conflicts Log — "Verify, Don't Trust"
+
+Every working note in the brief was audited against the authoritative official documentation:
+
+| # | Working Note in Brief | Verification Finding | Verdict | Authoritative Overruling Documentation |
+| :- | :--- | :--- | :--- | :--- |
+| **1** | *Uber may include the full cart in the webhook; verify whether a Get Order call is still required.* | The `orders.notification` webhook delivers **only metadata** (`meta.resource_id`). It **does not** contain cart or line items. A `GET /eats/order/{id}` call is strictly required to fetch the cart. | **REJECTED / CHANGED** | [Uber Eats orders.notification API Spec](https://developer.uber.com/docs/eats/references/api/webhooks.orders-notification) |
+| **2** | *DoorDash Marketplace line items may use a top-level `items[]`.* | DoorDash Marketplace line items are nested under `order.items[]`, not top-level `items[]`. Top-level payloads only contain `event` and `order`. | **REJECTED / CHANGED** | [DoorDash Order Integration Spec](https://developer.doordash.com/en-US/docs/marketplace/how_to/order_integration/) |
+| **3** | *Verify which DoorDash monetary field should become `total_cents` and whether tax is included.* | DoorDash supplies integer cents for `subtotal`, `tax`, and `tip_amount`. The actual total charged is `subtotal + tax + tip_amount`. | **VERIFIED & CODIFIED** | DoorDash Developer Pricing Reference |
+| **4** | *Verify Uber webhook signature generation and the `X-Uber-Signature` header.* | Uber signs payloads using HMAC-SHA256 hex digest of the raw body using the app's `client_secret` in the `X-Uber-Signature` header. | **VERIFIED AS CORRECT** | Uber Eats Webhook Security Documentation |
+| **5** | *Verify the exact Uber webhook response status/body.* | The webhook receiver must respond with HTTP `200 OK` and an empty body (`{}`) immediately to avoid retries. | **VERIFIED AS CORRECT** | Uber Eats Webhook Acknowledgment Spec |
+| **6** | *DoorDash Drive webhooks are optional.* | DoorDash Drive is white-label fulfillment, whereas this integration handles DoorDash **Marketplace** orders (`OrderCreate`). Drive is completely out of scope. | **VERIFIED AS CORRECT** | DoorDash Developer Portal Matrix |
+| **7** | *Verify whether Uber webhook `meta.resource_id` corresponds to the Get Order id in the official examples.* | `meta.resource_id` in `orders.notification` is precisely the UUID used in `GET /eats/order/{order_id}`. | **VERIFIED AS CORRECT** | [Uber Eats Get Order API v2](https://developer.uber.com/docs/eats/references/api/v2/get-eats-order-orderid) |
+| **8** | *Do not rely on a provider query parameter for normal provider detection.* | Implemented zero-hint detection: detects provider purely by structural fingerprinting of the payload. | **VERIFIED AS CORRECT** | System Design Invariant |
+| **9** | *Verify the documented location of DoorDash customer phone data.* | Located under `order.consumer.phone_number`, often masked for privacy. | **VERIFIED AS CORRECT** | DoorDash Consumer Schema Spec |
+| **10** | *Normalize marketplace statuses into the internal status model where appropriate.* | Uber `CREATED` and DoorDash `NEW` map to canonical `RECEIVED`. Uber `ACCEPTED` and DoorDash `CONFIRMED` map to `CONFIRMED`. | **VERIFIED AS CORRECT** | Nomni Canonical Domain Spec |
+
+---
+
+## 5. Architectural Highlights
+
+1. **Zero-Hint Detection**: Payload routing contains zero hardcoded vendor query parameters. The engine analyzes event discriminators (`event_type === 'orders.notification'` vs `event.type === 'OrderCreate'`).
+2. **Idempotent Upsert**: Guaranteed by composite indexing on `(provider, external_order_id)`. Re-delivered webhooks update the record in-place rather than generating duplicate kitchen tickets.
+3. **Apple Minimalist UI**:
+   - Deep obsidian canvas (`#09090b`) with translucent glassmorphic surfaces (`backdrop-blur-xl`) and Nomni violet accents (`#8b5cf6`).
+   - Query string filter preservation (`?provider=...&status=...&search=...`) survives navigating to `/orders/:id` and clicking back.
+   - Keyboard accessible: Navigating with tab and pressing **Enter** opens ticket details.
+   - Raw cents and marketplace payloads are strictly sequestered inside a collapsible `<details>` debug accordion.
+   - Fully responsive and tested at **1280px** (desktop kitchen terminal) and **390px** (iPhone).

@@ -1,0 +1,70 @@
+{
+  "id": "f9f363d1-e1c2-4595-b477-c649845bc953",
+  "display_id": "UB-953",
+  "external_reference_id": "HARRY-101",
+  "current_state": "CREATED",
+  "type": "DELIVERY_BY_UBER",
+  "placed_at": "2026-10-07T14:30:00Z",
+  "store": {
+    "id": "store-c7f1dc2f-fabe",
+    "name": "Harry's Burgers - Sydney CBD"
+  },
+  "eater": {
+    "first_name": "Sarah",
+    "last_name": "Jenkins",
+    "phone": "+61 412 345 678",
+    "phone_code": "4123"
+  },
+  "cart": {
+    "items": [
+      {
+        "id": "item-truffle-burger-01",
+        "title": "Double Truffle Wagyu Burger",
+        "quantity": 2,
+        "price": {
+          "unit_price": {
+            "amount": 1850,
+            "currency_code": "AUD"
+          },
+          "total_price": {
+            "amount": 3700,
+            "currency_code": "AUD"
+          }
+        },
+        "special_instructions": "Extra pickles, medium rare"
+      },
+      {
+        "id": "item-rosemary-fries-02",
+        "title": "Crispy Rosemary Truffle Fries",
+        "quantity": 1,
+        "price": {
+          "unit_price": {
+            "amount": 850,
+            "currency_code": "AUD"
+          },
+          "total_price": {
+            "amount": 850,
+            "currency_code": "AUD"
+          }
+        },
+        "special_instructions": "Sauce on the side"
+      }
+    ]
+  },
+  "payment": {
+    "charges": {
+      "total": {
+        "amount": 4550,
+        "currency_code": "AUD"
+      },
+      "sub_total": {
+        "amount": 4550,
+        "currency_code": "AUD"
+      },
+      "tax": {
+        "amount": 455,
+        "currency_code": "AUD"
+      }
+    }
+  }
+}

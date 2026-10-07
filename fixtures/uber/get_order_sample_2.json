@@ -1,0 +1,70 @@
+{
+  "id": "e4b219a8-98c4-4211-9a73-8109bfca3301",
+  "display_id": "UB-301",
+  "external_reference_id": "NOMNI-204",
+  "current_state": "ACCEPTED",
+  "type": "DELIVERY_BY_UBER",
+  "placed_at": "2026-10-07T14:15:00Z",
+  "store": {
+    "id": "store-c7f1dc2f-fabe",
+    "name": "Harry's Burgers - Sydney CBD"
+  },
+  "eater": {
+    "first_name": "Alex",
+    "last_name": "Chen",
+    "phone": "+61 498 765 432",
+    "phone_code": "4987"
+  },
+  "cart": {
+    "items": [
+      {
+        "id": "item-avocado-smash-01",
+        "title": "Avocado Smash on Sourdough",
+        "quantity": 1,
+        "price": {
+          "unit_price": {
+            "amount": 1600,
+            "currency_code": "AUD"
+          },
+          "total_price": {
+            "amount": 1600,
+            "currency_code": "AUD"
+          }
+        },
+        "special_instructions": "Gluten free bread if available"
+      },
+      {
+        "id": "item-oat-flatwhite-02",
+        "title": "Oat Milk Flat White (Large)",
+        "quantity": 2,
+        "price": {
+          "unit_price": {
+            "amount": 550,
+            "currency_code": "AUD"
+          },
+          "total_price": {
+            "amount": 1100,
+            "currency_code": "AUD"
+          }
+        },
+        "special_instructions": "Extra hot, no sugar"
+      }
+    ]
+  },
+  "payment": {
+    "charges": {
+      "total": {
+        "amount": 2700,
+        "currency_code": "AUD"
+      },
+      "sub_total": {
+        "amount": 2700,
+        "currency_code": "AUD"
+      },
+      "tax": {
+        "amount": 270,
+        "currency_code": "AUD"
+      }
+    }
+  }
+}
