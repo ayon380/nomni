@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, use, useTransition, Suspense } from 'react';
+import React, { useState, useEffect, useTransition, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { InternalOrder } from '@/lib/types';
 import { formatMoney, formatDateTime, getNextStatus, getProviderLabel } from '@/lib/utils';
 import { ProviderBadge } from '@/components/ProviderBadge';
@@ -22,16 +22,18 @@ import {
 
 import { useOrdersStore } from '@/store/useOrdersStore';
 
-function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: string }> }) {
-  const { id } = use(paramsPromise);
+function OrderDetailContent() {
+  const params = useParams();
+  const id = typeof params?.id === 'string' ? params.id : Array.isArray(params?.id) ? params.id[0] : '';
   const router = useRouter();
   const searchParams = useSearchParams();
-  const orders = useOrdersStore((state) => state.orders);
-  const updateOrderInStore = useOrdersStore((state) => state.updateOrderInStore);
 
-  const cachedOrder = orders.find((o) => o.id === id) || null;
-  const [order, setOrder] = useState<InternalOrder | null>(cachedOrder);
-  const [loading, setLoading] = useState(!cachedOrder);
+  // Instant zero-flicker initialization from existing cached store state
+  const [order, setOrder] = useState<InternalOrder | null>(() => {
+    if (!id) return null;
+    return useOrdersStore.getState().orders.find((o) => o.id === id) || null;
+  });
+  const [loading, setLoading] = useState<boolean>(() => !order);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -42,7 +44,9 @@ function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
   const backHref = searchParams.toString() ? `/?${searchParams.toString()}` : '/';
 
   useEffect(() => {
+    if (!id) return;
     let ignore = false;
+
     fetch(`/api/orders/${id}`)
       .then((res) => {
         if (!res.ok) {
@@ -54,14 +58,19 @@ function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
       .then((data) => {
         if (!ignore) {
           setOrder(data.order);
-          updateOrderInStore(data.order);
+          useOrdersStore.getState().updateOrderInStore(data.order);
           setLoading(false);
           setError(null);
         }
       })
       .catch((err: unknown) => {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to load order');
+          setOrder((prev) => {
+            if (!prev) {
+              setError(err instanceof Error ? err.message : 'Failed to load order');
+            }
+            return prev;
+          });
           setLoading(false);
         }
       });
@@ -69,7 +78,7 @@ function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
     return () => {
       ignore = true;
     };
-  }, [id, updateOrderInStore]);
+  }, [id]);
 
   // Advance status forward with useTransition
   const handleAdvanceStatus = () => {
@@ -87,7 +96,7 @@ function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
         if (!res.ok) throw new Error('Failed to advance order status');
         const data = await res.json();
         setOrder(data.order);
-        updateOrderInStore(data.order);
+        useOrdersStore.getState().updateOrderInStore(data.order);
       } catch (err: unknown) {
         alert(err instanceof Error ? err.message : 'Failed to advance order status');
       }
@@ -374,7 +383,7 @@ function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
   );
 }
 
-export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function OrderDetailPage() {
   return (
     <Suspense
       fallback={
@@ -383,7 +392,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       }
     >
-      <OrderDetailContent paramsPromise={params} />
+      <OrderDetailContent />
     </Suspense>
   );
 }
