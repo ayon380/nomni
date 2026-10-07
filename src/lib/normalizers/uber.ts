@@ -41,13 +41,15 @@ export function computeUberSignature(rawBody: string, secret: string = UBER_DEFA
  * In production: calls GET /eats/order/{order_id} with OAuth Bearer token.
  * In demo/offline test: resolves from official fixtures based on meta.resource_id.
  */
-export function resolveUberOrderDetails(webhookPayload: Record<string, any>): Record<string, any> {
+export function resolveUberOrderDetails(webhookPayload: Record<string, unknown>): Record<string, unknown> {
+  const wp = webhookPayload as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
   // If the payload is already the full order cart (e.g. direct order payload fixture)
-  if (webhookPayload.cart && Array.isArray(webhookPayload.cart.items)) {
-    return webhookPayload;
+  if (wp.cart && Array.isArray(wp.cart.items)) {
+    return wp;
   }
 
-  const resourceId = webhookPayload.meta?.resource_id;
+  const resourceId = wp.meta?.resource_id;
   const fixturesDir = path.join(process.cwd(), 'fixtures', 'uber');
 
   // Try to find matching fixture by order ID
@@ -103,17 +105,19 @@ function mapUberStatus(state: string | undefined): OrderStatus {
  * Normalizes an Uber Eats order into the internal canonical model.
  */
 export function normalizeUberOrder(
-  webhookPayload: Record<string, any>,
-  resolvedOrder?: Record<string, any>
+  webhookPayload: Record<string, unknown>,
+  resolvedOrder?: Record<string, unknown>
 ): InternalOrder {
-  const order = resolvedOrder || resolveUberOrderDetails(webhookPayload);
+  const orderRaw = resolvedOrder || resolveUberOrderDetails(webhookPayload);
+  const order = orderRaw as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const wp = webhookPayload as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   const eater = order.eater || {};
   const customerName = [eater.first_name, eater.last_name].filter(Boolean).join(' ') || 'Uber Eats Customer';
   const customerPhone = eater.phone || undefined;
 
   const rawItems = order.cart?.items || [];
-  const line_items = rawItems.map((item: any, idx: number) => {
+  const line_items = rawItems.map((item: Record<string, any>, idx: number) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     const unitPrice = item.price?.unit_price?.amount ?? 0;
     const qty = item.quantity ?? 1;
     const lineTotal = item.price?.total_price?.amount ?? (unitPrice * qty);
@@ -131,13 +135,13 @@ export function normalizeUberOrder(
   const charges = order.payment?.charges;
   const totalCents = charges?.total?.amount ??
     charges?.sub_total?.amount ??
-    line_items.reduce((sum: number, it: any) => sum + it.line_total, 0);
+    line_items.reduce((sum: number, it: { line_total: number }) => sum + it.line_total, 0);
 
   const currency = charges?.total?.currency_code ||
     rawItems[0]?.price?.unit_price?.currency_code ||
     'AUD';
 
-  const externalId = order.display_id || order.id || webhookPayload.meta?.resource_id || `UB-${Date.now()}`;
+  const externalId = order.display_id || order.id || wp.meta?.resource_id || `UB-${Date.now()}`;
   const internalId = `ord_uber_${(order.id || externalId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}`;
 
   return {

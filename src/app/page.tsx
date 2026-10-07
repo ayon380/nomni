@@ -22,17 +22,13 @@ function OrdersListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Read initial states from URL query string
-  const providerParam = searchParams.get('provider') || 'all';
-  const statusParam = searchParams.get('status') || 'all';
+  // Derive active filters directly from URL searchParams (single source of truth)
+  const provider = searchParams.get('provider') || 'all';
+  const status = searchParams.get('status') || 'all';
   const searchParam = searchParams.get('search') || '';
-  const sortParam = (searchParams.get('sort') as 'time_desc' | 'time_asc') || 'time_desc';
+  const sort = (searchParams.get('sort') as 'time_desc' | 'time_asc') || 'time_desc';
 
-  const [provider, setProvider] = useState<string>(providerParam);
-  const [status, setStatus] = useState<string>(statusParam);
   const [search, setSearch] = useState<string>(searchParam);
-  const [sort, setSort] = useState<'time_desc' | 'time_asc'>(sortParam);
-
   const [orders, setOrders] = useState<InternalOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,14 +42,6 @@ function OrdersListContent() {
   // React 19 Concurrent Transition for buttery smooth updates
   const [isPending, startTransition] = useTransition();
 
-  // Sync state if URL query params change (e.g. back button)
-  useEffect(() => {
-    setProvider(searchParams.get('provider') || 'all');
-    setStatus(searchParams.get('status') || 'all');
-    setSearch(searchParams.get('search') || '');
-    setSort((searchParams.get('sort') as 'time_desc' | 'time_asc') || 'time_desc');
-  }, [searchParams]);
-
   // Push updated filter params to URL query string using useTransition
   const updateUrlParams = useCallback(
     (newFilters: { provider?: string; status?: string; search?: string; sort?: string }) => {
@@ -61,7 +49,7 @@ function OrdersListContent() {
 
       const nextProvider = newFilters.provider !== undefined ? newFilters.provider : provider;
       const nextStatus = newFilters.status !== undefined ? newFilters.status : status;
-      const nextSearch = newFilters.search !== undefined ? newFilters.search : search;
+      const nextSearch = newFilters.search !== undefined ? newFilters.search : searchParam;
       const nextSort = newFilters.sort !== undefined ? newFilters.sort : sort;
 
       if (nextProvider && nextProvider !== 'all') params.set('provider', nextProvider);
@@ -76,40 +64,71 @@ function OrdersListContent() {
       if (nextSort && nextSort !== 'time_desc') params.set('sort', nextSort);
       else params.delete('sort');
 
-      // Use transition for seamless non-blocking page transition
       startTransition(() => {
         router.replace(`/?${params.toString()}`, { scroll: false });
       });
     },
-    [router, searchParams, provider, status, search, sort]
+    [router, searchParams, provider, status, searchParam, sort]
   );
 
   // Fetch orders from API
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = useCallback(() => {
     setLoading(true);
     setError(null);
-    try {
-      const queryParams = new URLSearchParams();
-      if (provider !== 'all') queryParams.set('provider', provider);
-      if (status !== 'all') queryParams.set('status', status);
-      if (search.trim()) queryParams.set('search', search.trim());
-      queryParams.set('sort', sort);
+    const queryParams = new URLSearchParams();
+    if (provider !== 'all') queryParams.set('provider', provider);
+    if (status !== 'all') queryParams.set('status', status);
+    if (searchParam.trim()) queryParams.set('search', searchParam.trim());
+    queryParams.set('sort', sort);
 
-      const res = await fetch(`/api/orders?${queryParams.toString()}`);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data = await res.json();
-      setOrders(data.orders || []);
-      setSelectedIndex(0); // Reset selection to top item
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch kitchen orders');
-    } finally {
-      setLoading(false);
-    }
-  }, [provider, status, search, sort]);
+    fetch(`/api/orders?${queryParams.toString()}`, { cache: 'no-store' })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        setOrders(data.orders || []);
+        setSelectedIndex(0);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : 'Failed to fetch kitchen orders');
+        setLoading(false);
+      });
+  }, [provider, status, searchParam, sort]);
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    let ignore = false;
+    const queryParams = new URLSearchParams();
+    if (provider !== 'all') queryParams.set('provider', provider);
+    if (status !== 'all') queryParams.set('status', status);
+    if (searchParam.trim()) queryParams.set('search', searchParam.trim());
+    queryParams.set('sort', sort);
+
+    fetch(`/api/orders?${queryParams.toString()}`, { cache: 'no-store' })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (!ignore) {
+          setOrders(data.orders || []);
+          setSelectedIndex(0);
+          setLoading(false);
+          setError(null);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!ignore) {
+          setError(err instanceof Error ? err.message : 'Failed to fetch kitchen orders');
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [provider, status, searchParam, sort]);
 
   // Navigate to Detail using useTransition
   const navigateToDetail = useCallback(
@@ -173,18 +192,15 @@ function OrdersListContent() {
   };
 
   const handleProviderChange = (val: string) => {
-    setProvider(val);
     updateUrlParams({ provider: val });
   };
 
   const handleStatusChange = (val: string) => {
-    setStatus(val);
     updateUrlParams({ status: val });
   };
 
   const handleSortToggle = () => {
     const nextSort = sort === 'time_desc' ? 'time_asc' : 'time_desc';
-    setSort(nextSort);
     updateUrlParams({ sort: nextSort });
   };
 
@@ -198,10 +214,11 @@ function OrdersListContent() {
       if (!res.ok) {
         throw new Error(`Simulation failed: HTTP ${res.status}`);
       }
-      await fetchOrders();
-    } catch (e: any) {
+      fetchOrders();
+    } catch (e: unknown) {
       console.error('Simulation failed', e);
-      alert(`Simulation failed: ${e.message}`);
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      alert(`Simulation failed: ${msg}`);
     } finally {
       setSimulating(null);
     }
@@ -361,8 +378,6 @@ function OrdersListContent() {
             )}
             <button
               onClick={() => {
-                setProvider('all');
-                setStatus('all');
                 setSearch('');
                 updateUrlParams({ provider: 'all', status: 'all', search: '' });
               }}
@@ -416,8 +431,6 @@ function OrdersListContent() {
           </div>
           <button
             onClick={() => {
-              setProvider('all');
-              setStatus('all');
               setSearch('');
               updateUrlParams({ provider: 'all', status: 'all', search: '' });
             }}
@@ -454,13 +467,19 @@ function OrdersListContent() {
                     <tr
                       key={order.id}
                       tabIndex={0}
-                      role="button"
-                      aria-selected={isSelected}
+                      aria-label={`Open ticket ${order.external_order_id} for ${order.customer.name}`}
                       onClick={() => {
                         setSelectedIndex(idx);
                         navigateToDetail(order.id);
                       }}
+                      onFocus={() => setSelectedIndex(idx)}
                       onMouseEnter={() => setSelectedIndex(idx)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          navigateToDetail(order.id);
+                        }
+                      }}
                       className={`group focus:outline-none transition-colors cursor-pointer select-none ${
                         isSelected
                           ? 'bg-[#EFE7D2] dark:bg-[#1E232B] ring-2 ring-[#0E3727] dark:ring-[#2AC864] ring-inset'
@@ -530,7 +549,15 @@ function OrdersListContent() {
                   key={order.id}
                   tabIndex={0}
                   role="button"
+                  aria-label={`Open ticket ${order.external_order_id} for ${order.customer.name}`}
                   onClick={() => navigateToDetail(order.id)}
+                  onFocus={() => setSelectedIndex(idx)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      navigateToDetail(order.id);
+                    }
+                  }}
                   className={`p-4 transition-colors cursor-pointer space-y-3 ${
                     isSelected
                       ? 'bg-[#EFE7D2] dark:bg-[#1E232B] ring-2 ring-[#0E3727] dark:ring-[#2AC864]'

@@ -9,24 +9,27 @@ const DATA_FILE = path.join(DATA_DIR, 'orders.json');
 
 class OrderStore {
   private orders: Map<string, InternalOrder> = new Map();
+  private lastMtime = 0;
   private initialized = false;
 
   private ensureInitialized() {
-    if (this.initialized) return;
-
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
 
     if (fs.existsSync(DATA_FILE)) {
       try {
-        const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-        const parsed: InternalOrder[] = JSON.parse(raw);
-        this.orders.clear();
-        for (const order of parsed) {
-          this.orders.set(order.id, order);
+        const stat = fs.statSync(DATA_FILE);
+        if (stat.mtimeMs !== this.lastMtime || !this.initialized) {
+          const raw = fs.readFileSync(DATA_FILE, 'utf-8');
+          const parsed: InternalOrder[] = JSON.parse(raw);
+          this.orders.clear();
+          for (const order of parsed) {
+            this.orders.set(order.id, order);
+          }
+          this.lastMtime = stat.mtimeMs;
+          this.initialized = true;
         }
-        this.initialized = true;
         return;
       } catch (err) {
         console.error('Failed reading existing orders.json, seeding defaults...', err);
@@ -86,6 +89,8 @@ class OrderStore {
       }
       const data = Array.from(this.orders.values());
       fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
+      const stat = fs.statSync(DATA_FILE);
+      this.lastMtime = stat.mtimeMs;
     } catch (err) {
       console.error('Failed to persist orders to disk:', err);
     }

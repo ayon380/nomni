@@ -7,16 +7,18 @@ import { OrderProvider } from '../types';
  * 1. Does not require or add a 'provider' field to fixtures.
  * 2. Does not rely on provider query parameters.
  */
-export function detectProvider(payload: Record<string, any>): OrderProvider | null {
+export function detectProvider(payload: Record<string, unknown>): OrderProvider | null {
   if (!payload || typeof payload !== 'object') {
     return null;
   }
 
+  const p = payload as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
   // 1. Uber Eats Webhook Notification Fingerprint
   // Structure: { event_type: "orders.notification", meta: { resource_id: "..." }, resource_href: "..." }
   if (
-    payload.event_type === 'orders.notification' ||
-    (payload.meta && typeof payload.meta.resource_id === 'string' && payload.resource_href?.includes('uber.com'))
+    p.event_type === 'orders.notification' ||
+    (p.meta && typeof p.meta.resource_id === 'string' && p.resource_href?.includes('uber.com'))
   ) {
     return 'uber_eats';
   }
@@ -24,10 +26,10 @@ export function detectProvider(payload: Record<string, any>): OrderProvider | nu
   // Direct Uber Eats Order Payload Fingerprint (e.g. from GET /eats/order/ID)
   // Structure: { id: "...", current_state: "...", eater: { ... }, cart: { items: [...] } }
   if (
-    payload.current_state &&
-    payload.cart &&
-    Array.isArray(payload.cart.items) &&
-    payload.eater
+    p.current_state &&
+    p.cart &&
+    Array.isArray(p.cart.items) &&
+    p.eater
   ) {
     return 'uber_eats';
   }
@@ -35,8 +37,8 @@ export function detectProvider(payload: Record<string, any>): OrderProvider | nu
   // 2. DoorDash Marketplace Webhook Fingerprint
   // Structure: { event: { type: "OrderCreate", status: "NEW" }, order: { id: "...", items: [...] } }
   if (
-    payload.event?.type === 'OrderCreate' ||
-    (payload.order && Array.isArray(payload.order.items) && payload.order.consumer)
+    p.event?.type === 'OrderCreate' ||
+    (p.order && Array.isArray(p.order.items) && p.order.consumer)
   ) {
     return 'doordash';
   }

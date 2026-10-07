@@ -19,7 +19,7 @@ console.log('--- Starting Nomni Marketplace Ingestion Verification Suite ---');
 let passedTests = 0;
 let totalTests = 0;
 
-function assert(condition: boolean, testName: string, details?: any) {
+function assert(condition: boolean, testName: string, details?: unknown) {
   totalTests++;
   if (condition) {
     console.log(`✓ [PASS] ${testName}`);
@@ -144,5 +144,8 @@ assert(
   searchResult.length > 0 && searchResult.some((o) => o.customer.name.includes('Marcus')),
   'Search by customer name finds matching orders'
 );
+
+// Clean up store to leave default demo orders pristine
+orderStore.resetStore();
 
 console.log(`\nAll tests passed: ${passedTests} / ${totalTests} (100% SUCCESS)\n`);

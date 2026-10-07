@@ -54,15 +54,16 @@ function mapDoorDashStatus(status: string | undefined): OrderStatus {
  * - total_cents is calculated as subtotal + tax + tip_amount (in cents).
  * - Customer info extracted from order.consumer.
  */
-export function normalizeDoorDashOrder(payload: Record<string, any>): InternalOrder {
-  const order = payload.order || payload;
+export function normalizeDoorDashOrder(payload: Record<string, unknown>): InternalOrder {
+  const p = payload as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const order = p.order || p;
 
   const consumer = order.consumer || {};
   const customerName = [consumer.first_name, consumer.last_name].filter(Boolean).join(' ') || 'DoorDash Customer';
   const customerPhone = consumer.phone_number || undefined;
 
   const rawItems = order.items || [];
-  const line_items = rawItems.map((item: any, idx: number) => {
+  const line_items = rawItems.map((item: Record<string, any>, idx: number) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     const unitPrice = typeof item.price === 'number' ? item.price : 0;
     const quantity = typeof item.quantity === 'number' ? item.quantity : 1;
     const lineTotal = unitPrice * quantity;
@@ -82,7 +83,7 @@ export function normalizeDoorDashOrder(payload: Record<string, any>): InternalOr
   const tax = typeof order.tax === 'number' ? order.tax : 0;
   const tip = typeof order.tip_amount === 'number' ? order.tip_amount : 0;
   const totalCents = (subtotal + tax + tip) ||
-    line_items.reduce((acc: number, it: any) => acc + it.line_total, 0);
+    line_items.reduce((acc: number, it: { line_total: number }) => acc + it.line_total, 0);
 
   const currency = order.currency || 'USD';
   const externalId = order.display_id || order.id || `DD-${Date.now()}`;
@@ -92,7 +93,7 @@ export function normalizeDoorDashOrder(payload: Record<string, any>): InternalOr
     id: internalId,
     provider: 'doordash',
     external_order_id: String(externalId),
-    status: mapDoorDashStatus(payload.event?.status || order.status || 'NEW'),
+    status: mapDoorDashStatus(p.event?.status || order.status || 'NEW'),
     customer: {
       name: customerName,
       phone: customerPhone,
@@ -100,7 +101,7 @@ export function normalizeDoorDashOrder(payload: Record<string, any>): InternalOr
     line_items,
     total_cents: totalCents,
     currency,
-    created_at: payload.event?.created_at || new Date().toISOString(),
+    created_at: p.event?.created_at || new Date().toISOString(),
     raw_payload: payload,
   };
 }

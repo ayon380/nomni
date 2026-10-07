@@ -18,7 +18,6 @@ import {
   Code2,
   Terminal,
   RefreshCw,
-  Keyboard,
 } from 'lucide-react';
 
 function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: string }> }) {
@@ -38,24 +37,32 @@ function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
   const backHref = searchParams.toString() ? `/?${searchParams.toString()}` : '/';
 
   useEffect(() => {
-    async function loadOrder() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`/api/orders/${id}`);
+    let ignore = false;
+    fetch(`/api/orders/${id}`)
+      .then((res) => {
         if (!res.ok) {
           if (res.status === 404) throw new Error('Order not found');
           throw new Error(`HTTP error ${res.status}`);
         }
-        const data = await res.json();
-        setOrder(data.order);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load order');
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadOrder();
+        return res.json();
+      })
+      .then((data) => {
+        if (!ignore) {
+          setOrder(data.order);
+          setLoading(false);
+          setError(null);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!ignore) {
+          setError(err instanceof Error ? err.message : 'Failed to load order');
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [id]);
 
   // Advance status forward with useTransition
@@ -74,13 +81,13 @@ function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
         if (!res.ok) throw new Error('Failed to advance order status');
         const data = await res.json();
         setOrder(data.order);
-      } catch (err: any) {
-        alert(err.message);
+      } catch (err: unknown) {
+        alert(err instanceof Error ? err.message : 'Failed to advance order status');
       }
     });
   };
 
-  // Keyboard navigation: Escape or Backspace goes back to list preserving filters
+  // Keyboard navigation: Escape goes back to list preserving filters
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {

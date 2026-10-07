@@ -18,7 +18,7 @@ import { orderStore } from '@/lib/store';
  */
 export async function POST(req: NextRequest) {
   let rawBodyText: string;
-  let bodyJson: Record<string, any>;
+  let bodyJson: Record<string, unknown>;
 
   try {
     rawBodyText = await req.text();
@@ -73,10 +73,11 @@ export async function POST(req: NextRequest) {
           },
         }
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error processing Uber order:', err);
+      const message = err instanceof Error ? err.message : 'Unknown error';
       return NextResponse.json(
-        { error: 'Failed to process Uber order', message: err.message },
+        { error: 'Failed to process Uber order', message },
         { status: 500 }
       );
     }
@@ -115,10 +116,11 @@ export async function POST(req: NextRequest) {
           },
         }
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error processing DoorDash order:', err);
+      const message = err instanceof Error ? err.message : 'Unknown error';
       return NextResponse.json(
-        { error: 'Failed to process DoorDash order', message: err.message },
+        { error: 'Failed to process DoorDash order', message },
         { status: 500 }
       );
     }
