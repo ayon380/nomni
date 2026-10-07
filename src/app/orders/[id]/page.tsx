@@ -20,13 +20,17 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
+import { useOrders } from '@/components/OrdersContext';
+
 function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: string }> }) {
   const { id } = use(paramsPromise);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { orders, updateOrderInStore } = useOrders();
 
-  const [order, setOrder] = useState<InternalOrder | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedOrder = orders.find((o) => o.id === id) || null;
+  const [order, setOrder] = useState<InternalOrder | null>(cachedOrder);
+  const [loading, setLoading] = useState(!cachedOrder);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -49,13 +53,16 @@ function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
       .then((data) => {
         if (!ignore) {
           setOrder(data.order);
+          updateOrderInStore(data.order);
           setLoading(false);
           setError(null);
         }
       })
       .catch((err: unknown) => {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to load order');
+          if (!cachedOrder) {
+            setError(err instanceof Error ? err.message : 'Failed to load order');
+          }
           setLoading(false);
         }
       });
@@ -63,7 +70,7 @@ function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
     return () => {
       ignore = true;
     };
-  }, [id]);
+  }, [id, updateOrderInStore, cachedOrder]);
 
   // Advance status forward with useTransition
   const handleAdvanceStatus = () => {
@@ -81,6 +88,7 @@ function OrderDetailContent({ paramsPromise }: { paramsPromise: Promise<{ id: st
         if (!res.ok) throw new Error('Failed to advance order status');
         const data = await res.json();
         setOrder(data.order);
+        updateOrderInStore(data.order);
       } catch (err: unknown) {
         alert(err instanceof Error ? err.message : 'Failed to advance order status');
       }

@@ -15,14 +15,15 @@ export function verifyUberSignature(
 ): boolean {
   if (!signatureHeader) return false;
   try {
+    const cleanHeader = signatureHeader.trim().toLowerCase();
     const hmac = crypto.createHmac('sha256', secret);
     hmac.update(rawBody);
-    const calculated = hmac.digest('hex');
+    const calculated = hmac.digest('hex').toLowerCase();
     
     // Timing-safe comparison to prevent timing attacks
     return (
-      signatureHeader.length === calculated.length &&
-      crypto.timingSafeEqual(Buffer.from(signatureHeader), Buffer.from(calculated))
+      cleanHeader.length === calculated.length &&
+      crypto.timingSafeEqual(Buffer.from(cleanHeader), Buffer.from(calculated))
     );
   } catch {
     return false;

@@ -11,10 +11,8 @@ export function verifyDoorDashAuth(
 ): boolean {
   if (!authHeader) return false;
   
-  // Format: "Bearer <token>" or raw token
-  const token = authHeader.startsWith('Bearer ')
-    ? authHeader.slice(7).trim()
-    : authHeader.trim();
+  // Format: "Bearer <token>" or raw token (case-insensitive for Bearer)
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
 
   return token === expectedToken;
 }
@@ -64,9 +62,13 @@ export function normalizeDoorDashOrder(payload: Record<string, unknown>): Intern
 
   const rawItems = order.items || [];
   const line_items = rawItems.map((item: Record<string, any>, idx: number) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-    const unitPrice = typeof item.price === 'number' ? item.price : 0;
+    const unitPrice = typeof item.price === 'number'
+      ? item.price
+      : (typeof item.unit_price === 'number' ? item.unit_price : 0);
     const quantity = typeof item.quantity === 'number' ? item.quantity : 1;
-    const lineTotal = unitPrice * quantity;
+    const lineTotal = typeof item.total_price === 'number'
+      ? item.total_price
+      : (unitPrice * quantity);
 
     return {
       id: item.id || `dd_item_${idx + 1}`,

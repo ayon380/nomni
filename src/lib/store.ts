@@ -80,6 +80,18 @@ class OrderStore {
     } catch (e) {
       console.warn('Could not seed Uber sample 2:', e);
     }
+
+    // 4. Seed DoorDash Sample Order 2 (Elena Rostova)
+    try {
+      const dd2SamplePath = path.join(fixturesDir, 'doordash', 'webhook_order_create_2.json');
+      if (fs.existsSync(dd2SamplePath)) {
+        const dd2Json = JSON.parse(fs.readFileSync(dd2SamplePath, 'utf-8'));
+        const dd2Order = normalizeDoorDashOrder(dd2Json);
+        this.orders.set(dd2Order.id, dd2Order);
+      }
+    } catch (e) {
+      console.warn('Could not seed DoorDash sample 2:', e);
+    }
   }
 
   private persist() {

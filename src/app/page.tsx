@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useTransition, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { InternalOrder } from '@/lib/types';
 import { formatMoney, formatDateTime } from '@/lib/utils';
 import { ProviderBadge } from '@/components/ProviderBadge';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -18,6 +17,8 @@ import {
   CornerDownLeft,
 } from 'lucide-react';
 
+import { useOrders } from '@/components/OrdersContext';
+
 function OrdersListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,10 +30,15 @@ function OrdersListContent() {
   const sort = (searchParams.get('sort') as 'time_desc' | 'time_asc') || 'time_desc';
 
   const [search, setSearch] = useState<string>(searchParam);
-  const [orders, setOrders] = useState<InternalOrder[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [prevSearchParam, setPrevSearchParam] = useState<string>(searchParam);
+  if (prevSearchParam !== searchParam) {
+    setPrevSearchParam(searchParam);
+    setSearch(searchParam);
+  }
   const [simulating, setSimulating] = useState<string | null>(null);
+
+  // Consume shared persistent orders state
+  const { orders, loading, error, fetchOrders, hasLoadedOnce } = useOrders();
 
   // Keyboard navigation index (-1 when none selected)
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -71,64 +77,14 @@ function OrdersListContent() {
     [router, searchParams, provider, status, searchParam, sort]
   );
 
-  // Fetch orders from API
-  const fetchOrders = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    const queryParams = new URLSearchParams();
-    if (provider !== 'all') queryParams.set('provider', provider);
-    if (status !== 'all') queryParams.set('status', status);
-    if (searchParam.trim()) queryParams.set('search', searchParam.trim());
-    queryParams.set('sort', sort);
 
-    fetch(`/api/orders?${queryParams.toString()}`, { cache: 'no-store' })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        setOrders(data.orders || []);
-        setSelectedIndex(0);
-        setLoading(false);
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Failed to fetch kitchen orders');
-        setLoading(false);
-      });
-  }, [provider, status, searchParam, sort]);
-
+  // Fetch or revalidate orders on filter change
   useEffect(() => {
-    let ignore = false;
-    const queryParams = new URLSearchParams();
-    if (provider !== 'all') queryParams.set('provider', provider);
-    if (status !== 'all') queryParams.set('status', status);
-    if (searchParam.trim()) queryParams.set('search', searchParam.trim());
-    queryParams.set('sort', sort);
-
-    fetch(`/api/orders?${queryParams.toString()}`, { cache: 'no-store' })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        if (!ignore) {
-          setOrders(data.orders || []);
-          setSelectedIndex(0);
-          setLoading(false);
-          setError(null);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to fetch kitchen orders');
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      ignore = true;
-    };
-  }, [provider, status, searchParam, sort]);
+    fetchOrders(
+      { provider, status, search: searchParam, sort },
+      hasLoadedOnce
+    );
+  }, [provider, status, searchParam, sort, fetchOrders, hasLoadedOnce]);
 
   // Navigate to Detail using useTransition
   const navigateToDetail = useCallback(
@@ -214,7 +170,7 @@ function OrdersListContent() {
       if (!res.ok) {
         throw new Error(`Simulation failed: HTTP ${res.status}`);
       }
-      fetchOrders();
+      fetchOrders({ provider, status, search: searchParam, sort }, true);
     } catch (e: unknown) {
       console.error('Simulation failed', e);
       const msg = e instanceof Error ? e.message : 'Unknown error';
@@ -222,6 +178,10 @@ function OrdersListContent() {
     } finally {
       setSimulating(null);
     }
+  };
+
+  const handleManualRefresh = () => {
+    fetchOrders({ provider, status, search: searchParam, sort }, false);
   };
 
   return (
@@ -270,7 +230,7 @@ function OrdersListContent() {
           </button>
 
           <button
-            onClick={fetchOrders}
+            onClick={handleManualRefresh}
             className="p-2 rounded-xl bg-[#FFFFFF] dark:bg-zinc-900 border border-[#E8E2D1] dark:border-white/[0.08] text-[#0E3727] dark:text-zinc-300 hover:bg-[#EFE9D7] dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             title="Refresh feed"
           >
@@ -410,7 +370,7 @@ function OrdersListContent() {
           <h3 className="text-sm font-semibold text-[#0E3727] dark:text-white">Error Loading Orders</h3>
           <p className="text-xs text-[#4A4E57] dark:text-zinc-400 max-w-sm mx-auto">{error}</p>
           <button
-            onClick={fetchOrders}
+            onClick={handleManualRefresh}
             className="px-4 py-2 rounded-xl text-xs font-medium bg-[#0E3727] dark:bg-zinc-800 text-white transition-colors"
           >
             Retry Connection
