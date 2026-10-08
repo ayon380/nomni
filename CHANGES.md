@@ -84,7 +84,10 @@ All fixtures are official sample payloads from the official documentation:
 
 I verified authentication and webhook response requirements against the official documentation:
 
-1. **Webhook Authentication:** DoorDash Marketplace does not use an HMAC signature header. Authentication is configured by the developer in the Developer Portal (supporting Basic Auth and OAuth Bearer tokens). My implementation (`verifyDoorDashAuth()`) supports both `Authorization: Bearer <TOKEN>` and `Authorization: Basic <TOKEN>`.
+1. **Webhook Authentication:**
+   - **Documented requirement:** In [DoorDash Order Integration](https://developer.doordash.com/en-US/docs/marketplace/how_to/order_integration/#receiving-orders-from-doordash) under **“Receiving Orders from DoorDash”**, DoorDash states: *“DoorDash also has a webhook that notifies you of incoming live new orders. This webhook will contain the same authentication header as the webhook described in Receiving Menu Status Updates... Currently it’s a manual process, so please contact DoorDash to configure the url.”*
+   - **Header Mechanism:** DoorDash Marketplace does not use an HMAC signature header. Authentication headers are configured by the developer/TAM in the Developer Portal (Webhook Subscriptions) where developers input the `Authorization` token (supporting Basic Auth and OAuth Bearer tokens).
+   - **Implementation:** `verifyDoorDashAuth()` supports both `Authorization: Bearer <TOKEN>` and `Authorization: Basic <TOKEN>`.
 2. **Webhook Acknowledgment Response:**
    - **Documented requirement:** Under **“Synchronous Order Confirmation”** ([DoorDash Order Integration](https://developer.doordash.com/en-US/docs/marketplace/how_to/order_integration/#synchronous-order-confirmation)), DoorDash states: *“Return 200 for an order success, a non 2xx will be treated as an order failure.”*
    - **What is unknown:** The public Marketplace documentation does not specify any response body schema for webhook acknowledgments.
