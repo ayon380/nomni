@@ -17,7 +17,7 @@ In the initial submission, several rows in the Conflicts Log cited internal arch
 I conflated internal system invariants (such as zero-hint payload routing and my canonical internal status model) with external marketplace contracts.
 
 ### What Was Changed
-Every row was re-audited against authoritative documentation from the **Uber Eats Developer Portal** and **DoorDash Developer Portal**. Each row now cites the exact document title, section header, and direct canonical URL. Invariant decisions that are internal to Nomni (such as payload sniffing and internal status mapping) are now explicitly identified as **Internal Design Decisions** rather than external provider requirements.
+Every row is re-audited against authoritative documentation from the **Uber Eats Developer Portal** and **DoorDash Developer Portal**. Each row now cites the exact document title, section header, and direct canonical URL. Invariant decisions that are internal to Nomni (such as payload sniffing and internal status mapping) are now explicitly identified as **Internal Design Decisions** rather than external provider requirements.
 
 ### Authoritative Conflicts Log Table
 
@@ -97,7 +97,7 @@ All fixtures in this repository are 100% official sample payloads downloaded dir
 | :--- | :--- | :--- | :--- |
 | `fixtures/uber/sample_webhook.json` | Uber Eats `orders.notification` Webhook | [Uber Eats Webhooks](https://developer.uber.com/docs/eats/references/api/webhooks.orders-notification) — “Example Webhook” | `d6cf2dbd32ac4eeba6c605cde17935e6` |
 | `fixtures/uber/sample_order.json` | Uber Eats Get Order v2 Response | [Uber Eats Get Order v2](https://developer.uber.com/docs/eats/references/api/v2/get-eats-order-orderid) — “Response Body - Order” | `18216dc0acd5306b90e9a631f88d0f40` |
-| `fixtures/doordash/sample.json` | DoorDash Marketplace `OrderCreate` Webhook | [DoorDash Order Integration](https://developer.doordash.com/en-US/docs/marketplace/how_to/order_integration/) — “Receiving Orders from DoorDash” | `848bfd6ab7f555211437e398731f3b15` |
+| `fixtures/doordash/sample.json` | DoorDash Marketplace `OrderCreate` Webhook | [DoorDash Order Integration](https://developer.doordash.com/en-US/docs/marketplace/how_to/order_integration/) — “Receiving Orders from DoorDash”; [DoorDash Sample Order Reference](https://developer.doordash.com/en-US/docs/marketplace/reference/sample_order) | `848bfd6ab7f555211437e398731f3b15` |
 
 ### Surprises Identified in the Official Fixtures
 
