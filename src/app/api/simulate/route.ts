@@ -92,11 +92,23 @@ export async function POST(req: NextRequest) {
       body: rawBody,
     });
 
-    const data = await res.json();
+    const rawText = await res.text();
+    let data: unknown = null;
+    try {
+      data = rawText ? JSON.parse(rawText) : null;
+    } catch {
+      data = null;
+    }
+
+    const orderId = res.headers.get('x-nomni-order-id');
+    const isUpsert = res.headers.get('x-nomni-upsert');
+
     return NextResponse.json({
       success: res.ok,
       provider: 'uber_eats',
       display_id: displayId,
+      order_id: orderId,
+      is_upsert: isUpsert === 'true',
       status: res.status,
       data,
     });
@@ -155,11 +167,23 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payload),
     });
 
-    const data = await res.json();
+    const rawText = await res.text();
+    let data: unknown = null;
+    try {
+      data = rawText ? JSON.parse(rawText) : null;
+    } catch {
+      data = null;
+    }
+
+    const orderId = res.headers.get('x-nomni-order-id');
+    const isUpsert = res.headers.get('x-nomni-upsert');
+
     return NextResponse.json({
       success: res.ok,
       provider: 'doordash',
       display_id: displayId,
+      order_id: orderId,
+      is_upsert: isUpsert === 'true',
       status: res.status,
       data,
     });

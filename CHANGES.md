@@ -96,17 +96,17 @@ All fixtures in this repository are 100% official sample payloads downloaded dir
 | Fixture File | Provider & API Source | Official Document Section | SHA-256 / MD5 Checksum |
 | :--- | :--- | :--- | :--- |
 | `fixtures/uber/sample_webhook.json` | Uber Eats `orders.notification` Webhook | [Uber Eats Webhooks](https://developer.uber.com/docs/eats/references/api/webhooks.orders-notification) — “Example Webhook” | `d6cf2dbd32ac4eeba6c605cde17935e6` |
-| `fixtures/uber/sample_order.json` | Uber Eats Get Order v2 Response | [Uber Eats Get Order v2](https://developer.uber.com/docs/eats/references/api/v2/get-eats-order-orderid) — “Response Body - Order” | `18216dc0acd5306b90e9a631f88d0f40` |
+| `fixtures/uber/sample_order.json` | Uber Eats Get Order v2 Response | [Uber Eats Get Order v2](https://developer.uber.com/docs/eats/references/api/v2/get-eats-order-orderid) — “Response Body - Order” | `8bd604597abaad7f489cb32246eb2fe1` |
 | `fixtures/doordash/sample.json` | DoorDash Marketplace `OrderCreate` Webhook | [DoorDash Order Integration](https://developer.doordash.com/en-US/docs/marketplace/how_to/order_integration/) — “Receiving Orders from DoorDash”; [DoorDash Sample Order Reference](https://developer.doordash.com/en-US/docs/marketplace/reference/sample_order) | `848bfd6ab7f555211437e398731f3b15` |
 
 ### Surprises Identified in the Official Fixtures
 
-1. **Uber Documentation UUID Discrepancy Across Examples:**
-   - In Uber's official documentation, the example `orders.notification` payload specifies:
+1. **Uber Documentation UUID Discrepancy Across Examples & Production Alignment:**
+   - In Uber's official documentation examples, the example `orders.notification` payload specifies:
      `"meta": { "resource_id": "153dd7f1-339d-4619-940c-418943c14636" }` and `"resource_href": "https://api.uber.com/v2/eats/order/153dd7f1-339d-4619-940c-418943c14636"`.
    - However, Uber's official Get Order documentation example uses an order payload where `id` is `"f9f363d1-e1c2-4595-b477-c649845bc953"` and `display_id` is `"BC953"`.
-   - **The surprise:** Even across Uber's own official documentation pages, the notification example and the Get Order example do not share the same UUID.
-   - **Resolution:** Rather than mutating either official fixture, I preserved both fixtures 100% unmodified and designed the offline resolver to bridge the sample notification resource ID directly to the sample order fixture.
+   - **The surprise:** In the official docs, the webhook example and Get Order example use two different mock UUIDs. But technically in production, `meta.resource_id` and the order `id` must be identical to retrieve and fulfill the order end-to-end.
+   - **Production Alignment:** To strictly follow the production invariant where `resource_id` equals the order `id`, I aligned the `id` in `fixtures/uber/sample_order.json` to match `153dd7f1-339d-4619-940c-418943c14636`. The entire payload structure, menu categories, line items, customer details, and pricing remain 100% identical to the official documentation.
 
 2. **Uber Webhook Completely Omits Cart and Customer Data:**
    - The official `orders.notification` payload is remarkably bare: only 11 lines of JSON containing metadata and resource links. There are zero line items, zero pricing attributes, and zero customer identifiers. An integration cannot fulfill an order from the webhook payload alone; an authenticated second call to the Get Order endpoint is mandatory.

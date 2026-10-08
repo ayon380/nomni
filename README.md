@@ -54,7 +54,7 @@ curl -i -X POST http://localhost:3000/api/webhooks \
 
 - **HTTP Status**: `200 OK`
 - **Body**: Empty response body (0 bytes per official Uber Eats documentation)
-- **Headers**: `x-nomni-order-id: ord_uber_f9f363d1e1c2`, `x-nomni-upsert: true`
+- **Headers**: `x-nomni-order-id: ord_uber_153dd7f1339d`, `x-nomni-upsert: true`
 
 ---
 
@@ -83,7 +83,7 @@ The internal model is canonical and belongs to Nomni, decoupling internal operat
 
 | Canonical Internal Field            | Uber Eats Source Field (`sample_order.json`)  | DoorDash Marketplace Source Field (`sample.json`) | Sample Example Values                   | Notes                                                |
 | :---------------------------------- | :-------------------------------------------- | :------------------------------------------------- | :-------------------------------------- | :--------------------------------------------------- |
-| `id`                                | `ord_uber_` + `order.id.slice(0, 12)`         | `ord_dd_` + `order.id`                             | `ord_uber_f9f363d1e1c2`, `ord_dd_abc12345` | Unique internal prefixed ID                         |
+| `id`                                | `ord_uber_` + `order.id.slice(0, 12)`         | `ord_dd_` + `order.id`                             | `ord_uber_153dd7f1339d`, `ord_dd_abc12345` | Unique internal prefixed ID                         |
 | `provider`                          | Normalized `'uber_eats'`                      | Normalized `'doordash'`                            | `'uber_eats'`, `'doordash'`             | Canonical provider discriminator                     |
 | `external_order_id`                 | `display_id` (fallback: `id`)                 | `order.id` (fallback: `order.display_id`)          | `'BC953'`, `'abc12345'`                 | Display code seen by staff & delivery couriers       |
 | `status`                            | `current_state` (`CREATED` → `RECEIVED`)      | `event.status` (`NEW` → `RECEIVED`)                | `'RECEIVED'`                            | Normalized into Nomni internal lifecycle             |
