@@ -1,10 +1,6 @@
 # Nomni — Revision Changes & Architectural Audit (CHANGES.md)
 
-**Author:** Ayon Sarkar  
-**Reviewer:** Anivar A Aravind (VP Engineering – Platform, Nomni)  
-**Date:** October 8, 2026  
 
----
 
 ## 1. Conflicts Log
 
@@ -79,6 +75,8 @@ All fixtures are official sample payloads from the official documentation:
 3. **DoorDash Line Items Under Categories:** Items are nested under `order.categories[].items[]` rather than a top-level `order.items[]`.
 4. **DoorDash Monetary Fields:** Subtotal, tax, and tips are provided in integer cents, but the payload does not contain a precalculated `total_cents` field.
 5. **DoorDash Masked Phone Numbers:** In `sample.json`, the customer phone is `+18559731040` (a DoorDash toll-free relay number).
+6. **Customer Object Terminology (`eater` vs `consumer`):** Uber Eats uses the distinct domain term `"eater"` (`order.eater` and `order.eaters[].id`) to represent the customer, whereas DoorDash uses `"consumer"` (`order.consumer`).
+7. **Timestamp Formatting Differences:** In Uber Eats, the `orders.notification` webhook provides a Unix Epoch timestamp in seconds (`"event_time": 1427343990`), whereas the Get Order payload provides an ISO 8601 string (`"placed_at": "2019-05-14T15:16:54-05:00"`). DoorDash represents timestamps as ISO 8601 strings (`"estimated_pickup_time": "2019-08-24T14:15:22Z"`).
 
 ---
 
