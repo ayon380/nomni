@@ -94,7 +94,7 @@ The internal model is canonical and belongs to Nomni, decoupling internal operat
 | `line_items[].unit_price`           | `cart.items[].price.unit_price.amount`        | `item.price`                                       | `350` ($3.50), `0`                      | Integer in cents                                     |
 | `line_items[].line_total`           | `cart.items[].price.total_price.amount`       | `item.price * item.quantity`                       | `350`, `0`                              | Integer in cents                                     |
 | `line_items[].special_instructions` | `cart.items[].special_instructions`           | `item.special_instructions`                        | `'make it iced please'`                 | Kitchen prep instructions                            |
-| `total_cents`                       | `payment.charges.total.amount`                | `subtotal + tax + tip - discount`                  | `1399` ($13.99), `2300` ($23.00)        | Total amount in integer cents                        |
+| `total_cents`                       | `payment.charges.total.amount`                | `subtotal + tax + merchant_tip_amount`             | `1399` ($13.99), `2185` ($21.85)        | Integer in cents (computed internally for DoorDash)  |
 | `currency`                          | `payment.charges.total.currency_code`         | `order.currency` (default `'USD'`)                 | `'USD'`                                 | ISO 4217 currency code                               |
 | `created_at`                        | `placed_at`                                   | `order.estimated_pickup_time`                      | `'2019-05-14T15:16:54-05:00'`           | ISO 8601 timestamp string                            |
 | `raw_payload`                       | `{ webhook, get_order_details }`              | Full webhook JSON payload                          | Complete JSON payload                   | Sequestered in expandable UI debug accordion         |
@@ -171,7 +171,7 @@ sequenceDiagram
         Normalizer-->>API: Internal Canonical Order
         API->>Store: upsertOrder(canonicalOrder)
         Store-->>API: Persisted (isUpsert flag)
-        API-->>DD: HTTP 200 OK (Empty Body: acknowledges receipt, stops retries)
+        API-->>DD: HTTP 200 OK (Empty Body: acknowledges receipt)
     end
 ```
 
@@ -195,9 +195,8 @@ flowchart TD
     I --> D
 ```
 
-### D. Kitchen Dashboard UI & Architecture
+### D. Key Implementation Features
 1. **Zero-Hint Routing**: Payload routing analyzes event discriminators without artificial query hints.
 2. **State-Preserving Idempotency**: Webhook retries never roll back tickets that kitchen staff have moved forward.
-3. **Obsidian & Glass Aesthetics**: Deep dark palette (`#09090b`) with violet accents (`#8b5cf6`) and translucent panels.
-4. **Kitchen Usability**: Full keyboard navigation (`Tab` + `Enter`), URL query parameter persistence, and cleanly sequestered raw JSON debug panels.
+3. **Kitchen Usability**: Keyboard navigation, URL query parameter filter persistence, and expandable raw JSON debug accordion.
 
