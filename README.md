@@ -72,7 +72,7 @@ curl -i -X POST http://localhost:3000/api/webhooks \
 **Expected Response**:
 
 - **HTTP Status**: `200 OK`
-- **Body**: Empty response body (0 bytes; acknowledges receipt and prevents automated retries; response body is unspecified in public documentation)
+- **Body**: Empty response body (0 bytes; acknowledges receipt per DoorDash Marketplace specification: “Return 200 for an order success, a non 2xx will be treated as an order failure”; response body schema is unspecified in public documentation)
 - **Headers**: `x-nomni-order-id: ord_dd_abc12345`, `x-nomni-upsert: true`
 
 ---

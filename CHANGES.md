@@ -138,8 +138,8 @@ I assumed standard webhook acknowledgment boilerplate (`{"status": "acknowledged
 
 ### What Was Changed & What the Docs Actually Say
 1. **Webhook Acknowledgment Response:**
-   - **Documented requirement:** Return HTTP `200 OK`. DoorDash executes up to **3 automated retries** with exponential backoff if an HTTP 200 is not received within timeout limits.
-   - **What is unknown:** The public documentation does **not** specify any response body schema (neither JSON nor plain text).
+   - **Documented requirement:** Return HTTP `200 OK` for an order success (*“Return 200 for an order success, a non 2xx will be treated as an order failure”* under **“Synchronous Order Confirmation”**).
+   - **What is unknown:** The public Marketplace documentation does **not** specify any response body schema (neither JSON nor plain text) for webhook acknowledgments.
    - **Implementation:** `/api/webhooks/route.ts` returns an HTTP `200 OK` with an **empty response body** (`new NextResponse(null, { status: 200 })`), acknowledging the delivery without inventing ungrounded schemas.
 2. **Webhook Authentication:**
    - DoorDash does not utilize a proprietary HMAC signature header for Marketplace orders.
