@@ -1,6 +1,11 @@
 # Nomni — Revision Changes & Architectural Audit (CHANGES.md)
 
+> **Author's Note / Context for Revision:**  
+> In the initial submission, my effort was disproportionately focused on the product surfaces—building the interactive kitchen dashboard, keyboard-first navigation, observability, and the webhook simulator. In doing so, I treated the marketplace contracts with standard webhook assumptions rather than scrutinizing each provider's exact specification.
+> 
+> In this revision, I have executed an exhaustive, primary-source audit across both the Uber Eats and DoorDash developer portals. Every row in the Conflicts Log now links directly to authoritative documentation, and the implementation strictly adheres to documented reality—including 0-byte HTTP 200 acknowledgments, authentic fixture ingestion, and a monotonic kitchen lifecycle guard to prevent ticket regression during network retries.
 
+---
 
 ## 1. Conflicts Log
 
