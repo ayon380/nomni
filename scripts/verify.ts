@@ -76,6 +76,10 @@ assert(
   'DoorDash Bearer authentication succeeds with valid token'
 );
 assert(
+  verifyDoorDashAuth(`Basic ${DOORDASH_DEFAULT_TOKEN}`, DOORDASH_DEFAULT_TOKEN),
+  'DoorDash Basic authentication succeeds with valid credentials'
+);
+assert(
   !verifyDoorDashAuth('Bearer bad_token', DOORDASH_DEFAULT_TOKEN),
   'DoorDash Bearer authentication rejects invalid token'
 );
@@ -125,16 +129,31 @@ const res1 = orderStore.upsertOrder(newOrderTest);
 assert(!res1.isUpsert, 'First ingestion of DD-UNIQUE-99 is marked as new insert');
 assert(orderStore.getAllOrders().length === initialCount + 1, 'Total orders count incremented by 1');
 
-// Re-ingest same order (simulating webhook retry)
+// Re-ingest same order (simulating webhook retry with same initial status)
 const reIngestOrder = {
   ...newOrderTest,
-  status: 'CONFIRMED' as const,
 };
 const res2 = orderStore.upsertOrder(reIngestOrder);
 assert(res2.isUpsert, 'Re-ingestion of same external order ID is marked as idempotent upsert');
 assert(orderStore.getAllOrders().length === initialCount + 1, 'Total orders count does NOT increment on duplicate');
-const retrieved = orderStore.getOrderById(res2.order.id);
-assert(retrieved?.status === 'CONFIRMED', 'Order status was updated in-place during upsert');
+
+// Staff moves the order forward to PREPARING
+orderStore.updateOrderStatus(res2.order.id, 'PREPARING');
+const staffUpdated = orderStore.getOrderById(res2.order.id);
+assert(staffUpdated?.status === 'PREPARING', 'Kitchen staff advanced order status to PREPARING');
+
+// Marketplace redelivers the initial RECEIVED webhook (retry/network glitch)
+const duplicateInitialDelivery = {
+  ...newOrderTest,
+  status: 'RECEIVED' as const,
+};
+const res3 = orderStore.upsertOrder(duplicateInitialDelivery);
+assert(res3.isUpsert, 'Duplicate initial delivery identified as idempotent upsert');
+const afterRedelivery = orderStore.getOrderById(res2.order.id);
+assert(
+  afterRedelivery?.status === 'PREPARING',
+  'Redelivery monotonic guard: initial webhook retry does NOT regress staff status from PREPARING to RECEIVED'
+);
 
 // 6. Test Filtering & Search
 const uberOnly = orderStore.getAllOrders({ provider: 'uber_eats' });

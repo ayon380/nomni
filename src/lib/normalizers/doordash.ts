@@ -3,7 +3,8 @@ import { InternalOrder, OrderStatus } from '../types';
 export const DOORDASH_DEFAULT_TOKEN = process.env.DOORDASH_WEBHOOK_TOKEN || 'doordash_marketplace_token_2026';
 
 /**
- * Authenticates DoorDash webhooks using Bearer token or custom integration header.
+ * Authenticates DoorDash webhooks using integrator-configured credentials.
+ * DoorDash Developer Portal supports either Basic Auth or OAuth Bearer tokens.
  */
 export function verifyDoorDashAuth(
   authHeader: string | null | undefined,
@@ -11,8 +12,8 @@ export function verifyDoorDashAuth(
 ): boolean {
   if (!authHeader) return false;
   
-  // Format: "Bearer <token>" or raw token (case-insensitive for Bearer)
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  // Format: "Bearer <token>", "Basic <token>", or raw configured token
+  const token = authHeader.replace(/^(Bearer|Basic)\s+/i, '').trim();
 
   return token === expectedToken;
 }

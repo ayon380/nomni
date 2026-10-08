@@ -143,9 +143,31 @@ class OrderStore {
     }
 
     if (existingId) {
+      const existing = this.orders.get(existingId)!;
+
+      // Monotonic Kitchen Lifecycle Preservation:
+      // In a Kitchen OS, once kitchen staff has moved an order forward
+      // (RECEIVED -> CONFIRMED -> PREPARING -> READY -> DELIVERED), a redelivered webhook
+      // (e.g. initial 'NEW' or 'CREATED' payload retry) must NOT regress the ticket's status back.
+      //
+      // Status resolution rules:
+      // 1. If incoming order is an explicit cancellation ('CANCELLED'), accept cancellation.
+      // 2. If the existing order is still in initial 'RECEIVED' state, incoming status updates apply.
+      // 3. If staff has already progressed the ticket ('CONFIRMED', 'PREPARING', 'READY', 'DELIVERED'),
+      //    preserve existing.status to prevent rolling back kitchen progress.
+      let resolvedStatus = existing.status;
+      if (order.status === 'CANCELLED') {
+        resolvedStatus = 'CANCELLED';
+      } else if (existing.status === 'RECEIVED') {
+        resolvedStatus = order.status;
+      } else {
+        resolvedStatus = existing.status;
+      }
+
       const updatedOrder: InternalOrder = {
         ...order,
         id: existingId, // preserve internal ID
+        status: resolvedStatus, // preserve kitchen progress
       };
       this.orders.set(existingId, updatedOrder);
       this.persist();

@@ -62,17 +62,14 @@ export async function POST(req: NextRequest) {
       const internalOrder = normalizeUberOrder(bodyJson);
       const { order, isUpsert } = orderStore.upsertOrder(internalOrder);
 
-      // Official Uber Eats documentation: Return 200 OK immediately with empty body/object
-      return NextResponse.json(
-        {},
-        {
-          status: 200,
-          headers: {
-            'X-Nomni-Order-Id': order.id,
-            'X-Nomni-Upsert': isUpsert ? 'true' : 'false',
-          },
-        }
-      );
+      // Official Uber Eats documentation: Return HTTP 200 OK with an empty body
+      return new NextResponse(null, {
+        status: 200,
+        headers: {
+          'X-Nomni-Order-Id': order.id,
+          'X-Nomni-Upsert': isUpsert ? 'true' : 'false',
+        },
+      });
     } catch (err: unknown) {
       console.error('Error processing Uber order:', err);
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -91,7 +88,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: 'Unauthorized: Missing or invalid Authorization header.',
-          hint: 'DoorDash webhooks require Authorization: Bearer <DOORDASH_TOKEN>.',
+          hint: 'DoorDash webhooks are authenticated via integrator-configured credentials (Authorization: Bearer <TOKEN> or Basic).',
         },
         { status: 401 }
       );
@@ -102,20 +99,15 @@ export async function POST(req: NextRequest) {
       const internalOrder = normalizeDoorDashOrder(bodyJson);
       const { order, isUpsert } = orderStore.upsertOrder(internalOrder);
 
-      // Official DoorDash Marketplace acknowledgment response
-      return NextResponse.json(
-        {
-          order_id: order.external_order_id,
-          status: 'acknowledged',
+      // Official DoorDash documentation: Return HTTP 200 OK to acknowledge receipt and prevent retries.
+      // (The public docs do not specify any response body schema).
+      return new NextResponse(null, {
+        status: 200,
+        headers: {
+          'X-Nomni-Order-Id': order.id,
+          'X-Nomni-Upsert': isUpsert ? 'true' : 'false',
         },
-        {
-          status: 200,
-          headers: {
-            'X-Nomni-Order-Id': order.id,
-            'X-Nomni-Upsert': isUpsert ? 'true' : 'false',
-          },
-        }
-      );
+      });
     } catch (err: unknown) {
       console.error('Error processing DoorDash order:', err);
       const message = err instanceof Error ? err.message : 'Unknown error';
