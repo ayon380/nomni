@@ -14,7 +14,7 @@
 In the initial submission, several rows in the Conflicts Log cited internal architectural principles (e.g. *"System Design Invariant"*, *"Nomni Canonical Domain Spec"*) as though they were requirements defined by provider documentation, or asserted calculations without direct citations to official specification sections.
 
 ### Why It Happened
-We conflated internal system invariants (such as zero-hint payload routing and our canonical internal status model) with external marketplace contracts.
+I conflated internal system invariants (such as zero-hint payload routing and my canonical internal status model) with external marketplace contracts.
 
 ### What Was Changed
 Every row was re-audited against authoritative documentation from the **Uber Eats Developer Portal** and **DoorDash Developer Portal**. Each row now cites the exact document title, section header, and direct canonical URL. Invariant decisions that are internal to Nomni (such as payload sniffing and internal status mapping) are now explicitly identified as **Internal Design Decisions** rather than external provider requirements.
@@ -41,11 +41,11 @@ Every row was re-audited against authoritative documentation from the **Uber Eat
 > **Guideline:** Follow the documented flow end to end, from notification to order, and check it against your fixtures, not just the code path.
 
 ### What Was Wrong in the First Version
-1. **Webhook Acknowledgment Body:** In `/api/webhooks`, we responded with `NextResponse.json({})`. While HTTP 200 was correct, official Uber Eats documentation explicitly specifies an **empty response body** (0 bytes), not a JSON object containing `{}`.
+1. **Webhook Acknowledgment Body:** In `/api/webhooks`, I responded with `NextResponse.json({})`. While HTTP 200 was correct, official Uber Eats documentation explicitly specifies an **empty response body** (0 bytes), not a JSON object containing `{}`.
 2. **Missing End-to-End Architectural Traceability:** The initial documentation described order retrieval in the abstract without diagramming how an incoming notification payload transitions into an authenticated API fetch and maps into internal store upsert.
 
 ### Why It Happened
-Standard framework convenience methods (`NextResponse.json({})`) default to serializing empty JSON objects. We overlooked the strict 0-byte contract stated in Uber's API reference.
+Standard framework convenience methods (`NextResponse.json({})`) default to serializing empty JSON objects. I overlooked the strict 0-byte contract stated in Uber's API reference.
 
 ### What Was Changed
 1. **Empty Body Response:** Updated `/api/webhooks/route.ts` to return `new NextResponse(null, { status: 200, ... })`.
@@ -106,7 +106,7 @@ All fixtures in this repository are 100% official sample payloads downloaded dir
      `"meta": { "resource_id": "153dd7f1-339d-4619-940c-418943c14636" }` and `"resource_href": "https://api.uber.com/v2/eats/order/153dd7f1-339d-4619-940c-418943c14636"`.
    - However, Uber's official Get Order documentation example uses an order payload where `id` is `"f9f363d1-e1c2-4595-b477-c649845bc953"` and `display_id` is `"BC953"`.
    - **The surprise:** Even across Uber's own official documentation pages, the notification example and the Get Order example do not share the same UUID.
-   - **Resolution:** Rather than mutating either official fixture, we preserved both fixtures 100% unmodified and designed the offline resolver to bridge the sample notification resource ID directly to the sample order fixture.
+   - **Resolution:** Rather than mutating either official fixture, I preserved both fixtures 100% unmodified and designed the offline resolver to bridge the sample notification resource ID directly to the sample order fixture.
 
 2. **Uber Webhook Completely Omits Cart and Customer Data:**
    - The official `orders.notification` payload is remarkably bare: only 11 lines of JSON containing metadata and resource links. There are zero line items, zero pricing attributes, and zero customer identifiers. An integration cannot fulfill an order from the webhook payload alone; an authenticated second call to the Get Order endpoint is mandatory.
@@ -130,11 +130,11 @@ All fixtures in this repository are 100% official sample payloads downloaded dir
 > **Guideline:** Re-check authentication and the webhook response against the docs. Don't invent values the docs don't specify; say what's unknown.
 
 ### What Was Wrong in the First Version
-1. **Invented Response Body:** In `/api/webhooks`, we responded to DoorDash with `{"order_id": order.external_order_id, "status": "acknowledged"}`. Public DoorDash documentation requires an HTTP `200 OK` response to acknowledge receipt and prevent retries, but **does not specify any response body schema**. Returning invented JSON properties was ungrounded.
-2. **Rigid Bearer Authentication Assumption:** We previously documented DoorDash authentication as strictly requiring `Authorization: Bearer <DOORDASH_TOKEN>`.
+1. **Invented Response Body:** In `/api/webhooks`, I responded to DoorDash with `{"order_id": order.external_order_id, "status": "acknowledged"}`. Public DoorDash documentation requires an HTTP `200 OK` response to acknowledge receipt and prevent retries, but **does not specify any response body schema**. Returning invented JSON properties was ungrounded.
+2. **Rigid Bearer Authentication Assumption:** I previously documented DoorDash authentication as strictly requiring `Authorization: Bearer <DOORDASH_TOKEN>`.
 
 ### Why It Happened
-We assumed standard webhook acknowledgment boilerplate (`{"status": "acknowledged"}`) without distinguishing between what DoorDash explicitly requires (HTTP 200) versus what is left unspecified.
+I assumed standard webhook acknowledgment boilerplate (`{"status": "acknowledged"}`) without distinguishing between what DoorDash explicitly requires (HTTP 200) versus what is left unspecified.
 
 ### What Was Changed & What the Docs Actually Say
 1. **Webhook Acknowledgment Response:**
@@ -179,7 +179,7 @@ sequenceDiagram
 > **Guideline:** Think through what the kitchen sees when the same webhook arrives again after staff have moved the order forward.
 
 ### What Was Wrong in the First Version (The Kitchen State Bug)
-In our initial implementation, `upsertOrder()` performed a standard shallow object merge:
+In my initial implementation, `upsertOrder()` performed a standard shallow object merge:
 ```typescript
 // v1 naive implementation:
 const updatedOrder = { ...order, id: existingId };
@@ -195,10 +195,10 @@ this.orders.set(existingId, updatedOrder);
 6. **What the kitchen sees:** The ticket vanishes from the "Ready for Courier" screen and jumps backward to "New Orders". Kitchen staff believe a brand-new order has arrived, re-cook the same meal, waste inventory, and cause fulfillment chaos.
 
 ### Why It Happened
-We approached idempotency from a pure database perspective (`INSERT ... ON CONFLICT DO UPDATE SET ...`). In a standard database, re-applying incoming attributes is typical. In a **Kitchen OS**, however, order status represents a physical, human-driven state machine. Overwriting active human workflow with a network retry violates the physical operational domain.
+I approached idempotency from a pure database perspective (`INSERT ... ON CONFLICT DO UPDATE SET ...`). In a standard database, re-applying incoming attributes is typical. In a **Kitchen OS**, however, order status represents a physical, human-driven state machine. Overwriting active human workflow with a network retry violates the physical operational domain.
 
 ### What Was Changed: State-Aware Monotonic Upsert Guard
-We updated `OrderStore.upsertOrder()` in `src/lib/store.ts` with explicit lifecycle preservation:
+I updated `OrderStore.upsertOrder()` in `src/lib/store.ts` with explicit lifecycle preservation:
 
 ```typescript
 // Monotonic Kitchen Lifecycle Preservation:
