@@ -3,6 +3,7 @@ import path from 'path';
 import { InternalOrder, OrderStatus, OrdersFilterParams } from './types';
 import { normalizeUberOrder } from './normalizers/uber';
 import { normalizeDoorDashOrder } from './normalizers/doordash';
+import { isValidStatusTransition } from './utils';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'orders.json');
@@ -184,6 +185,10 @@ class OrderStore {
     this.ensureInitialized();
     const existing = this.orders.get(id);
     if (!existing) return null;
+
+    if (!isValidStatusTransition(existing.status, newStatus)) {
+      return null;
+    }
 
     const updated: InternalOrder = {
       ...existing,

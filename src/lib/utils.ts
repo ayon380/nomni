@@ -68,3 +68,25 @@ export function getNextStatus(current: OrderStatus): OrderStatus | null {
       return null;
   }
 }
+
+const STATUS_RANKS: Record<OrderStatus, number> = {
+  RECEIVED: 1,
+  CONFIRMED: 2,
+  PREPARING: 3,
+  READY: 4,
+  DELIVERED: 5,
+  CANCELLED: 99,
+};
+
+/**
+ * Validates that status transitions only advance forward monotonically,
+ * allow cancellations from active states, and reject transitions out of terminal states.
+ */
+export function isValidStatusTransition(current: OrderStatus, target: OrderStatus): boolean {
+  if (current === target) return true;
+  if (current === 'DELIVERED' || current === 'CANCELLED') return false; // Terminal states
+  if (target === 'CANCELLED') return true; // Can cancel from any active state
+
+  return STATUS_RANKS[target] > STATUS_RANKS[current];
+}
+

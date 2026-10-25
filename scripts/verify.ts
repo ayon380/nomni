@@ -155,7 +155,20 @@ assert(
   'Redelivery monotonic guard: initial webhook retry does NOT regress staff status from PREPARING to RECEIVED'
 );
 
+// State machine rollback and terminal state guards
+const invalidRollback = orderStore.updateOrderStatus(res2.order.id, 'RECEIVED');
+assert(invalidRollback === null, 'State machine rejects rolling back PREPARING to RECEIVED');
+
+orderStore.updateOrderStatus(res2.order.id, 'READY');
+orderStore.updateOrderStatus(res2.order.id, 'DELIVERED');
+const deliveredOrder = orderStore.getOrderById(res2.order.id);
+assert(deliveredOrder?.status === 'DELIVERED', 'Kitchen staff advanced order status to terminal DELIVERED');
+
+const invalidFromDelivered = orderStore.updateOrderStatus(res2.order.id, 'PREPARING');
+assert(invalidFromDelivered === null, 'State machine rejects transitioning from terminal DELIVERED to PREPARING');
+
 // 6. Test Filtering & Search
+
 const uberOnly = orderStore.getAllOrders({ provider: 'uber_eats' });
 assert(uberOnly.every((o) => o.provider === 'uber_eats'), 'Filter by provider returns only uber_eats');
 
