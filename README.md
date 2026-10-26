@@ -200,3 +200,55 @@ flowchart TD
 2. **State-Preserving Idempotency**: Webhook retries never roll back tickets that kitchen staff have moved forward.
 3. **Kitchen Usability**: Keyboard navigation, URL query parameter filter persistence, and expandable raw JSON debug accordion.
 
+---
+
+## 6. Uber Eats Get Order Mock & HTTP Webhook Tests
+
+### A. The Uber Webhook & Get Order Flow
+Uber's `orders.notification` webhook carries event metadata only (`meta.resource_id`, `resource_href`); it does **not** carry items, pricing, or customer details. 
+
+When a signed webhook arrives at `POST /api/webhooks`:
+1. The signature is validated via HMAC-SHA256 (`X-Uber-Signature`).
+2. The server extracts `meta.resource_id` and calls `GET /v2/eats/order/{resource_id}` with a Bearer token via `uberClient`.
+3. The fetched order is treated as the single source of truth, normalized into Nomni's canonical model, and persisted idempotently.
+4. If the fetch fails or the fetched order does not match the notification's `resource_id`, nothing is stored and an HTTP `502 Bad Gateway` is returned so Uber retries.
+
+### B. Swappable Uber Client (Production vs Mock)
+The Uber client is behind a single interface (`UberOrderClient`) and dynamically reads its base URL and token from configuration:
+
+| Environment | Configuration | Description |
+|---|---|---|
+| **Development / Mock** (default) | *(leave unset)* | Automatically defaults `UBER_API_BASE_URL` to `http://localhost:3000` and Bearer token to `'uber_mock_dev_token'`. Directly targets the local mock route `GET /v2/eats/order/[id]`. |
+| **Production (Real Uber API)** | `UBER_API_BASE_URL=https://api.uber.com`<br/>`UBER_API_TOKEN=<partner_bearer_token>` | Seamlessly calls Uber's live Marketplace API over HTTPS with partner credentials. **Zero code changes required.** |
+
+### C. Running the Local Mock
+The mock endpoint implements the exact Uber-documented contract:
+- **Endpoint**: `GET http://localhost:3000/v2/eats/order/{order_id}`
+- **Authentication**: Requires `Authorization: Bearer <token>` (`401` if missing or invalid).
+- **Per-ID determinism**: Each unique `order_id` / `resource_id` produces a distinct order with a distinct `display_id` and item set, matching Uber's documented structure.
+
+### D. Running HTTP Tests with Signed Webhooks
+An automated test suite validates the end-to-end HTTP pipeline against a running server:
+
+```bash
+# 1. Start dev server in Terminal 1
+npm run dev
+
+# 2. Run the Uber HTTP integration suite in Terminal 2
+npm run test-uber
+# or against a custom port:
+PORT=3001 npm run test-uber
+```
+
+The test suite exercises:
+1. `GET /v2/eats/order/{id}` without token &rarr; `401 Unauthorized`
+2. `GET /v2/eats/order/{id}` with invalid token &rarr; `401 Unauthorized`
+3. `GET /v2/eats/order/{id}` with valid Bearer token &rarr; `200 OK` + `X-Nomni-Mock: true`
+4. Two different `resource_id`s &rarr; two different order payloads
+5. Valid signed webhook (`X-Uber-Signature`) &rarr; `200 OK` + `X-Nomni-Order-Id` header
+6. Distinct notifications &rarr; two distinct stored orders (not collapsed into one)
+7. Retried webhook with identical `resource_id` &rarr; idempotent upsert (`X-Nomni-Upsert: true`)
+8. Webhook with missing signature &rarr; `401 Unauthorized`
+9. Webhook with forged signature &rarr; `401 Unauthorized`
+10. Webhook missing `meta.resource_id` &rarr; `502 Bad Gateway` (so Uber retries)
+11. Unknown payload &rarr; `400 Bad Request`

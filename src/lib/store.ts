@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { InternalOrder, OrderStatus, OrdersFilterParams } from './types';
-import { normalizeUberOrder } from './normalizers/uber';
+import { normalizeUberOrderSync } from './normalizers/uber';
 import { normalizeDoorDashOrder } from './normalizers/doordash';
 import { isValidStatusTransition } from './utils';
 
@@ -51,7 +51,7 @@ class OrderStore {
       const samplePath = path.join(fixturesDir, 'uber', 'sample_order.json');
       if (fs.existsSync(samplePath)) {
         const uberJson = JSON.parse(fs.readFileSync(samplePath, 'utf-8'));
-        const uberOrder = normalizeUberOrder({ meta: { resource_id: uberJson.id } }, uberJson);
+        const uberOrder = normalizeUberOrderSync(uberJson, { meta: { resource_id: uberJson.id } });
         this.orders.set(uberOrder.id, uberOrder);
       }
     } catch (e) {

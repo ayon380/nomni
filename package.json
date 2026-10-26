@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "verify": "npx tsx scripts/verify.ts",
+    "test-uber": "npx tsx scripts/test-uber-webhook.ts"
   },
   "dependencies": {
     "lucide-react": "^1.52.0",

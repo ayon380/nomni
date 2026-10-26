@@ -1,7 +1,8 @@
 import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
 import { InternalOrder, OrderStatus } from '../types';
+import { uberClient, UberFetchError } from '../uber/client';
+
+export { UberFetchError };
 
 export const UBER_DEFAULT_SECRET = process.env.UBER_WEBHOOK_SECRET || 'uber_webhook_secret_key';
 
@@ -19,7 +20,7 @@ export function verifyUberSignature(
     const hmac = crypto.createHmac('sha256', secret);
     hmac.update(rawBody);
     const calculated = hmac.digest('hex').toLowerCase();
-    
+
     // Timing-safe comparison to prevent timing attacks
     return (
       cleanHeader.length === calculated.length &&
@@ -37,26 +38,27 @@ export function computeUberSignature(rawBody: string, secret: string = UBER_DEFA
   return crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
 }
 
-/**
- * Resolves the full order details for an Uber notification.
- * In production: calls GET /eats/order/{order_id} with OAuth Bearer token.
- * In demo/offline test: resolves from official fixtures based on meta.resource_id.
- */
-export function resolveUberOrderDetails(webhookPayload: Record<string, unknown>): Record<string, unknown> {
+
+export async function resolveUberOrderDetails(
+  webhookPayload: Record<string, unknown>
+): Promise<Record<string, unknown>> {
   const wp = webhookPayload as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-  // If the payload is already the full order cart (e.g. direct order payload fixture)
-  if (wp.cart && Array.isArray(wp.cart.items)) {
-    return wp;
+  const resourceId: string | undefined = wp.meta?.resource_id;
+  if (!resourceId) {
+    throw new UberFetchError('Uber webhook payload missing meta.resource_id — cannot fetch order details', 502);
   }
 
-  const sampleOrderPath = path.join(process.cwd(), 'fixtures', 'uber', 'sample_order.json');
-  if (fs.existsSync(sampleOrderPath)) {
-    return JSON.parse(fs.readFileSync(sampleOrderPath, 'utf-8'));
+  const order = await uberClient.getOrder(resourceId);
+  const fetchedId = (order as any)?.id; // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (fetchedId && fetchedId !== resourceId) {
+    throw new UberFetchError(
+      `Fetched order ID (${fetchedId}) does not match notification resource_id (${resourceId})`,
+      502
+    );
   }
 
-  const resourceId = wp.meta?.resource_id;
-  throw new Error(`Could not resolve Uber Get Order details for resource_id: ${resourceId}`);
+  return order;
 }
 
 /**
@@ -85,13 +87,14 @@ function mapUberStatus(state: string | undefined): OrderStatus {
 }
 
 /**
- * Normalizes an Uber Eats order into the internal canonical model.
+ * Pure synchronous core: maps a pre-fetched Uber order object plus the
+ * originating webhook notification into the internal canonical model.
+ * Never performs I/O — callers are responsible for providing the order.
  */
-export function normalizeUberOrder(
-  webhookPayload: Record<string, unknown>,
-  resolvedOrder?: Record<string, unknown>
+function buildInternalOrder(
+  orderRaw: Record<string, unknown>,
+  webhookPayload: Record<string, unknown>
 ): InternalOrder {
-  const orderRaw = resolvedOrder || resolveUberOrderDetails(webhookPayload);
   const order = orderRaw as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   const wp = webhookPayload as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -146,4 +149,33 @@ export function normalizeUberOrder(
       get_order_details: order,
     },
   };
+}
+
+/**
+ * Synchronous normalizer for use when the order object is already available
+ * (e.g. store seeding from fixtures). Does NOT perform any I/O.
+ */
+export function normalizeUberOrderSync(
+  resolvedOrder: Record<string, unknown>,
+  webhookPayload: Record<string, unknown> = {}
+): InternalOrder {
+  return buildInternalOrder(resolvedOrder, webhookPayload);
+}
+
+/**
+ * Async normalizer for use in the webhook handler.
+ *
+ * Fetches the full order from GET /v2/eats/order/{resource_id} via the
+ * configured Uber client (mock in dev, real API in production), then maps
+ * it to the internal canonical model.
+ *
+ * When `resolvedOrder` is supplied directly (e.g. in unit tests) the HTTP
+ * fetch is skipped entirely.
+ */
+export async function normalizeUberOrder(
+  webhookPayload: Record<string, unknown>,
+  resolvedOrder?: Record<string, unknown>
+): Promise<InternalOrder> {
+  const orderRaw = resolvedOrder ?? await resolveUberOrderDetails(webhookPayload);
+  return buildInternalOrder(orderRaw, webhookPayload);
 }

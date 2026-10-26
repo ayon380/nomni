@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { detectProvider } from '@/lib/normalizers/detector';
-import { verifyUberSignature, normalizeUberOrder } from '@/lib/normalizers/uber';
+import { verifyUberSignature, normalizeUberOrder, UberFetchError } from '@/lib/normalizers/uber';
 import { verifyDoorDashAuth, normalizeDoorDashOrder } from '@/lib/normalizers/doordash';
 import { orderStore } from '@/lib/store';
 
@@ -58,8 +58,9 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      // Normalize and upsert
-      const internalOrder = normalizeUberOrder(bodyJson);
+      // Fetch full order details from GET /v2/eats/order/{resource_id},
+      // then normalize and upsert. If the fetch fails, return 502 so Uber retries.
+      const internalOrder = await normalizeUberOrder(bodyJson);
       const { order, isUpsert } = orderStore.upsertOrder(internalOrder);
 
       // Official Uber Eats documentation: Return HTTP 200 OK with an empty body
@@ -71,11 +72,22 @@ export async function POST(req: NextRequest) {
         },
       });
     } catch (err: unknown) {
-      console.error('Error processing Uber order:', err);
       const message = err instanceof Error ? err.message : 'Unknown error';
+      const isFetchError =
+        err instanceof UberFetchError ||
+        message.includes('resource_id') ||
+        message.includes('HTTP');
+
+      if (isFetchError) {
+        console.warn(`[Uber Webhook] Upstream resolution failed: ${message}`);
+      } else {
+        console.error('Unexpected error processing Uber order:', err);
+      }
+
+      // Non-2xx triggers Uber retry; 502 signals upstream failure
       return NextResponse.json(
         { error: 'Failed to process Uber order', message },
-        { status: 500 }
+        { status: isFetchError ? 502 : 500 }
       );
     }
   }
