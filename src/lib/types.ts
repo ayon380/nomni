@@ -26,6 +26,7 @@ export interface InternalOrder {
   id: string;
   provider: OrderProvider;
   external_order_id: string;
+  display_id?: string;
   status: OrderStatus;
   customer: OrderCustomer;
   line_items: OrderLineItem[];

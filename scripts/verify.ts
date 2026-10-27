@@ -11,9 +11,6 @@ import {
   DOORDASH_DEFAULT_TOKEN,
 } from '../src/lib/normalizers/doordash';
 import { orderStore } from '../src/lib/store';
-import fs from 'fs';
-import path from 'path';
-
 console.log('--- Starting Nomni Marketplace Ingestion Verification Suite ---');
 
 let passedTests = 0;
@@ -30,19 +27,114 @@ function assert(condition: boolean, testName: string, details?: unknown) {
   }
 }
 
-// Wrap in async IIFE — normalizeUberOrder is now async (fetches order details
+// Wrap in async IIFE — normalizeUberOrder is async (fetches order details
 // over HTTP from the Uber client). All other tests remain synchronous.
 (async () => {
-  // 1. Fixture loading - Strictly official developer documentation samples
-  const uberWebhook = JSON.parse(
-    fs.readFileSync(path.join(process.cwd(), 'fixtures', 'uber', 'sample_webhook.json'), 'utf-8')
-  );
-  const uberOrder = JSON.parse(
-    fs.readFileSync(path.join(process.cwd(), 'fixtures', 'uber', 'sample_order.json'), 'utf-8')
-  );
-  const ddWebhook = JSON.parse(
-    fs.readFileSync(path.join(process.cwd(), 'fixtures', 'doordash', 'sample.json'), 'utf-8')
-  );
+  // 1. In-memory contract fixtures (strictly matching official provider specs, no disk I/O)
+  const uberWebhook = {
+    event_type: 'orders.notification',
+    event_id: '153dd7f1-339d-4619-940c-418943c14636',
+    event_time: 1557865014,
+    meta: {
+      resource_id: 'f9f363d1-e1c2-4595-b477-c649845bc953',
+      status: 'pos',
+      user_id: '63578c8b-9cd2-4c4f-91fc-315f575e6a78',
+    },
+    resource_href: 'https://api.uber.com/v2/eats/order/f9f363d1-e1c2-4595-b477-c649845bc953',
+  };
+
+  const uberOrder = {
+    id: 'f9f363d1-e1c2-4595-b477-c649845bc953',
+    display_id: 'BC953',
+    external_reference_id: 'Order-123',
+    current_state: 'CREATED',
+    eater: {
+      first_name: 'Larry',
+      phone: '+1 555-555-5555',
+      phone_code: '555 55 555',
+    },
+    eaters: [
+      {
+        id: '63578c8b-9cd2-4c4f-91fc-315f575e6a78',
+        first_name: 'Larry',
+      },
+    ],
+    deliveries: [
+      {
+        phone: '+1 555-555-5555',
+      },
+    ],
+    cart: {
+      items: [
+        {
+          id: 'Muffin',
+          instance_id: 'Muffin-Instance',
+          title: 'Fresh-baked muffin',
+          quantity: 1,
+          price: {
+            unit_price: { amount: 350, currency_code: 'USD', formatted_amount: '$3.50' },
+          },
+        },
+        {
+          id: 'Coffee',
+          instance_id: 'CoffeeInstance',
+          title: 'Coffee',
+          quantity: 1,
+          price: {
+            unit_price: { amount: 300, currency_code: 'USD', formatted_amount: '$3.00' },
+          },
+        },
+        {
+          id: 'Strawberry_Donut',
+          instance_id: 'Strawberry-Donut-Instance',
+          title: 'Strawberry Donut',
+          quantity: 1,
+          price: {
+            unit_price: { amount: 250, currency_code: 'USD', formatted_amount: '$2.50' },
+          },
+        },
+      ],
+    },
+    payment: {
+      charges: {
+        total: { amount: 1399, currency_code: 'USD', formatted_amount: '$13.99' },
+      },
+    },
+  };
+
+  const ddWebhook = {
+    event: {
+      type: 'OrderCreate',
+      status: 'NEW',
+      created_at: '2023-01-01T12:00:00Z',
+    },
+    order: {
+      id: 'abc12345',
+      display_id: 'DD-1042',
+      consumer: {
+        first_name: 'Kelley',
+        last_name: 'W.',
+        phone: '+18559731040',
+      },
+      categories: [
+        {
+          items: [
+            {
+              id: 'item-1',
+              name: 'Burrito Scram-Bowl',
+              quantity: 1,
+              price: 2000,
+              special_instructions: '',
+            },
+          ],
+        },
+      ],
+      subtotal: 2000,
+      tax: 300,
+      tip_amount: 0,
+      currency: 'USD',
+    },
+  };
 
   // 2. Test Zero-Hint Detection
   const detectedUber = detectProvider(uberWebhook);
@@ -95,7 +187,8 @@ function assert(condition: boolean, testName: string, details?: unknown) {
   // We pass resolvedOrder directly to bypass the HTTP client in this unit-style script.
   const normalizedUber = await normalizeUberOrder(uberWebhook, uberOrder);
   assert(normalizedUber.provider === 'uber_eats', 'Normalized Uber provider is uber_eats');
-  assert(normalizedUber.external_order_id === 'BC953', 'Uber external order ID matches display_id (BC953)');
+  assert(normalizedUber.external_order_id === uberOrder.id, `Uber external order ID matches order.id (${uberOrder.id})`);
+  assert(normalizedUber.display_id === 'BC953', 'Uber display ID matches display_id (BC953)');
   assert(normalizedUber.customer.name === 'Larry', 'Uber customer name extracted properly (Larry)');
   assert(normalizedUber.customer.phone === '+1 555-555-5555', 'Uber customer phone extracted properly (+1 555-555-5555)');
   assert(normalizedUber.line_items.length === 3, 'Uber cart items extracted (3 items: Muffin, Coffee, Donut)');
@@ -181,6 +274,39 @@ function assert(condition: boolean, testName: string, details?: unknown) {
     searchResult.length > 0 && searchResult.some((o) => o.customer.name.includes('Kelley')),
     'Search by customer name finds matching orders'
   );
+
+  // 7. Test Multi-order Ingestion & Non-merging IDs (bbbbbbb1, bbbbbbb2, etc.)
+  const baseCount = orderStore.getAllOrders().length;
+  const multiOrders = [1, 2, 3, 4, 5, 6, 7, 8].map((i) => ({
+    ...normalizedUber,
+    id: `ord_uber_bbbbbbb${i}eeee123456789`,
+    external_order_id: `bbbbbbb${i}-eeee-4000-8000-00000000000${i}`,
+    display_id: 'BC953', // intentionally identical display_ids to prove deduplication is by true order ID
+  }));
+
+  for (const o of multiOrders) {
+    const res = orderStore.upsertOrder(o);
+    assert(!res.isUpsert, `Order ${o.external_order_id} inserted as new unique order`);
+  }
+
+  const afterCount = orderStore.getAllOrders().length;
+  assert(afterCount === baseCount + 8, `All 8 orders saved distinctly without merging (found ${afterCount}, expected ${baseCount + 8})`);
+
+  // 8. Test Simultaneous Concurrent Ingestions (Promise.all)
+  const concurrentBase = orderStore.getAllOrders().length;
+  const concurrentOrders = [1, 2, 3, 4].map((i) => ({
+    ...normalizedUber,
+    id: `ord_uber_concurrent_${i}_${Date.now()}`,
+    external_order_id: `concurrent-uuid-000${i}-${Date.now()}`,
+    display_id: `CONC${i}`,
+  }));
+
+  const concurrentResults = await Promise.all(
+    concurrentOrders.map((o) => Promise.resolve(orderStore.upsertOrder(o)))
+  );
+  assert(concurrentResults.every((r) => !r.isUpsert), 'All simultaneous concurrent orders inserted without lock failure');
+  const countAfterConcurrent = orderStore.getAllOrders().length;
+  assert(countAfterConcurrent === concurrentBase + 4, `Store count reflects all concurrent inserts (found ${countAfterConcurrent}, expected ${concurrentBase + 4})`);
 
   // Clean up store to leave default demo orders pristine
   orderStore.resetStore();

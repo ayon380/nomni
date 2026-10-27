@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { InternalOrder, OrderStatus } from '../types';
-import { uberClient, UberFetchError } from '../uber/client';
+import { uberClient, UberFetchError, UberOrderClientOptions } from '../uber/client';
 
 export { UberFetchError };
 
@@ -40,7 +40,8 @@ export function computeUberSignature(rawBody: string, secret: string = UBER_DEFA
 
 
 export async function resolveUberOrderDetails(
-  webhookPayload: Record<string, unknown>
+  webhookPayload: Record<string, unknown>,
+  clientOptions?: UberOrderClientOptions
 ): Promise<Record<string, unknown>> {
   const wp = webhookPayload as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -49,7 +50,7 @@ export async function resolveUberOrderDetails(
     throw new UberFetchError('Uber webhook payload missing meta.resource_id — cannot fetch order details', 502);
   }
 
-  const order = await uberClient.getOrder(resourceId);
+  const order = await uberClient.getOrder(resourceId, clientOptions);
   const fetchedId = (order as any)?.id; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (fetchedId && fetchedId !== resourceId) {
     throw new UberFetchError(
@@ -128,13 +129,15 @@ function buildInternalOrder(
     order.currency ||
     'USD';
 
-  const externalId = order.display_id || order.id || wp.meta?.resource_id || `UB-${Date.now()}`;
-  const internalId = `ord_uber_${(order.id || externalId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}`;
+  const externalId = String(order.id || wp.meta?.resource_id || order.display_id || `UB-${Date.now()}`);
+  const cleanId = String(order.id || wp.meta?.resource_id || externalId).replace(/[^a-zA-Z0-9_-]/g, '');
+  const internalId = `ord_uber_${cleanId}`;
 
   return {
     id: internalId,
     provider: 'uber_eats',
     external_order_id: externalId,
+    display_id: order.display_id || undefined,
     status: mapUberStatus(order.current_state),
     customer: {
       name: customerName,
@@ -174,8 +177,9 @@ export function normalizeUberOrderSync(
  */
 export async function normalizeUberOrder(
   webhookPayload: Record<string, unknown>,
-  resolvedOrder?: Record<string, unknown>
+  resolvedOrder?: Record<string, unknown>,
+  clientOptions?: UberOrderClientOptions
 ): Promise<InternalOrder> {
-  const orderRaw = resolvedOrder ?? await resolveUberOrderDetails(webhookPayload);
+  const orderRaw = resolvedOrder ?? await resolveUberOrderDetails(webhookPayload, clientOptions);
   return buildInternalOrder(orderRaw, webhookPayload);
 }

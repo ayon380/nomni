@@ -29,7 +29,7 @@ export function detectProvider(payload: Record<string, unknown>): OrderProvider 
     p.current_state &&
     p.cart &&
     Array.isArray(p.cart.items) &&
-    p.eater
+    (p.eater || p.eaters)
   ) {
     return 'uber_eats';
   }

@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      // Fetch full order details from GET /v2/eats/order/{resource_id},
+      // Fetch full order details from GET /v2/eats/order/{resource_id}
+      // (calls https://api.uber.com in production, or uber-mock-api in development),
       // then normalize and upsert. If the fetch fails, return 502 so Uber retries.
       const internalOrder = await normalizeUberOrder(bodyJson);
       const { order, isUpsert } = orderStore.upsertOrder(internalOrder);
@@ -76,7 +77,8 @@ export async function POST(req: NextRequest) {
       const isFetchError =
         err instanceof UberFetchError ||
         message.includes('resource_id') ||
-        message.includes('HTTP');
+        message.includes('HTTP') ||
+        message.includes('timed out');
 
       if (isFetchError) {
         console.warn(`[Uber Webhook] Upstream resolution failed: ${message}`);
@@ -84,9 +86,12 @@ export async function POST(req: NextRequest) {
         console.error('Unexpected error processing Uber order:', err);
       }
 
-      // Non-2xx triggers Uber retry; 502 signals upstream failure
+      // Non-2xx triggers Uber retry; 502 signals upstream failure. Return sanitized message.
       return NextResponse.json(
-        { error: 'Failed to process Uber order', message },
+        {
+          error: isFetchError ? 'Bad Gateway' : 'Internal Server Error',
+          message: isFetchError ? 'Upstream order resolution failed' : 'Internal processing error',
+        },
         { status: isFetchError ? 502 : 500 }
       );
     }
@@ -122,9 +127,8 @@ export async function POST(req: NextRequest) {
       });
     } catch (err: unknown) {
       console.error('Error processing DoorDash order:', err);
-      const message = err instanceof Error ? err.message : 'Unknown error';
       return NextResponse.json(
-        { error: 'Failed to process DoorDash order', message },
+        { error: 'Internal Server Error', message: 'Internal processing error' },
         { status: 500 }
       );
     }

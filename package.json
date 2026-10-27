@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "verify": "npx tsx scripts/verify.ts",
-    "test-uber": "npx tsx scripts/test-uber-webhook.ts"
+    "test-uber": "npx tsx scripts/test-uber-webhook.ts",
+    "mock:uber": "npx tsx uber-mock-api/server.ts"
   },
   "dependencies": {
     "lucide-react": "^1.52.0",

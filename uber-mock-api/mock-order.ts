@@ -1,7 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+/**
+ * Uber Eats Mock Order Builder
+ *
+ * Constructs mock order objects adhering strictly to the official Uber Eats
+ * Get Order v2 documentation and response contract:
+ * https://developer.uber.com/docs/eats/api/v2/get/eats-order-orderid
+ */
 
-function buildMockOrder(orderId: string): Record<string, unknown> {
-  const seed = orderId.charCodeAt(0) % 5;
+export function buildMockOrder(orderId: string): Record<string, unknown> {
+  const seed = (orderId.charCodeAt(0) + orderId.charCodeAt(orderId.length - 1)) % 5;
 
   const menus = [
     { id: 'Muffin', title: 'Fresh-baked muffin', unitPrice: 350 },
@@ -31,9 +37,11 @@ function buildMockOrder(orderId: string): Record<string, unknown> {
     base_unit_price: { amount, currency_code: 'USD', formatted_amount: `$${(amount / 100).toFixed(2)}` },
   });
 
-  const makeItem = (item: typeof menus[number], eaterUuid: string) => ({
-    id: item.id,
-    instance_id: `${item.id}-Instance`,
+  const eaterUuid = `eater-uuid-${orderId.slice(-6)}`;
+
+  const makeItem = (item: typeof menus[number], idx: number) => ({
+    id: `${item.id}-${idx}`,
+    instance_id: `${item.id}-Instance-${idx}`,
     title: item.title,
     external_data: `External data for ${item.title}`,
     quantity: 1,
@@ -42,14 +50,16 @@ function buildMockOrder(orderId: string): Record<string, unknown> {
     eater_id: eaterUuid,
   });
 
-  const eaterUuid = `eater-uuid-000${seed}`;
+  // Short human-readable display code for restaurant ticket (Uber format e.g. "BC953" or "UB123")
+  const cleanChars = orderId.replace(/[^a-zA-Z0-9]/g, '');
+  const displayId = cleanChars.length >= 5
+    ? cleanChars.slice(-5).toUpperCase()
+    : `UB${cleanChars.toUpperCase()}`;
 
   return {
     id: orderId,
-    display_id: orderId === '153dd7f1-339d-4619-940c-418943c14636'
-      ? 'BC953'
-      : (orderId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 5) || 'UB001').toUpperCase(),
-    external_reference_id: `Order-Mock-${seed}`,
+    display_id: displayId,
+    external_reference_id: `Order-Mock-${cleanChars.slice(-6)}`,
     current_state: 'CREATED',
     store: {
       id: storeIds[seed],
@@ -66,7 +76,7 @@ function buildMockOrder(orderId: string): Record<string, unknown> {
     },
     eaters: [{ id: eaterUuid, first_name: firstNames[seed] }],
     cart: {
-      items: [makeItem(item1, eaterUuid), makeItem(item2, eaterUuid)],
+      items: [makeItem(item1, 1), makeItem(item2, 2)],
       fulfillment_issues: [],
     },
     payment: {
@@ -81,36 +91,4 @@ function buildMockOrder(orderId: string): Record<string, unknown> {
     type: 'DELIVERY_BY_UBER',
     brand: 'UBER_EATS',
   };
-}
-
-// ---------------------------------------------------------------------------
-// Route handler
-// ---------------------------------------------------------------------------
-
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-): Promise<NextResponse> {
-  // --- Auth ---
-  const authHeader = req.headers.get('authorization') ?? '';
-  const expectedToken = process.env.UBER_API_TOKEN || process.env.UBER_MOCK_TOKEN || 'uber_mock_dev_token';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-
-  if (!token || token !== expectedToken) {
-    return NextResponse.json(
-      { error: 'Unauthorized', message: 'Missing or invalid Authorization: Bearer <token>' },
-      { status: 401 },
-    );
-  }
-
-  // --- ID ---
-  const { id } = await params;
-  if (!id || id.trim() === '') {
-    return NextResponse.json({ error: 'Missing order id' }, { status: 400 });
-  }
-
-  return NextResponse.json(buildMockOrder(id), {
-    status: 200,
-    headers: { 'X-Nomni-Mock': 'true' },
-  });
 }

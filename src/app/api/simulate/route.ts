@@ -2,13 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { UBER_DEFAULT_SECRET, computeUberSignature } from '@/lib/normalizers/uber';
 import { DOORDASH_DEFAULT_TOKEN } from '@/lib/normalizers/doordash';
 
-const UBER_CUSTOMERS = [
-  { name: 'Liam O’Connor', phone: '+61 412 884 192', item: 'Double Truffle Wagyu Burger', price: 1850 },
-  { name: 'Chloe Davies', phone: '+61 413 559 201', item: 'Crispy Southern Fried Chicken Bao', price: 1650 },
-  { name: 'Noah Smith', phone: '+61 498 123 774', item: 'Avocado Toast with Poached Eggs', price: 1550 },
-  { name: 'Emma Wilson', phone: '+61 405 993 112', item: 'Smoked Salmon Poke Bowl', price: 1950 },
-];
-
 const DOORDASH_CUSTOMERS = [
   { name: 'Sophia Martinez', phone: '+1 415 672 9011', item: 'Tonkotsu Black Garlic Ramen', price: 1950 },
   { name: 'Ethan Wright', phone: '+1 415 882 3410', item: 'Pan-Fried Gyoza & Kimchi Fried Rice', price: 2100 },
@@ -31,53 +24,18 @@ export async function POST(req: NextRequest) {
   const randSuffix = Math.floor(1000 + Math.random() * 9000);
 
   if (provider === 'uber') {
-    const cust = UBER_CUSTOMERS[Math.floor(Math.random() * UBER_CUSTOMERS.length)];
-    const uniqueOrderId = `uber-${Date.now()}-${randSuffix}`;
+    const resourceId = crypto.randomUUID();
     const displayId = `UB-${randSuffix}`;
-
-    // Full Uber order structure
     const payload = {
-      id: uniqueOrderId,
-      display_id: displayId,
-      external_reference_id: `POS-${randSuffix}`,
-      current_state: 'CREATED',
-      type: 'DELIVERY_BY_UBER',
-      placed_at: new Date().toISOString(),
-      eater: {
-        first_name: cust.name.split(' ')[0],
-        last_name: cust.name.split(' ')[1] || '',
-        phone: cust.phone,
+      event_type: 'orders.notification',
+      event_id: crypto.randomUUID(),
+      event_time: Math.floor(Date.now() / 1000),
+      meta: {
+        resource_id: resourceId,
+        status: 'pos',
+        user_id: crypto.randomUUID(),
       },
-      cart: {
-        items: [
-          {
-            id: `item_ub_${randSuffix}_1`,
-            title: cust.item,
-            quantity: 1,
-            price: {
-              unit_price: { amount: cust.price, currency_code: 'AUD' },
-              total_price: { amount: cust.price, currency_code: 'AUD' },
-            },
-            special_instructions: 'Customer requested quick prep',
-          },
-          {
-            id: `item_ub_${randSuffix}_2`,
-            title: 'San Pellegrino Sparkling (500ml)',
-            quantity: 1,
-            price: {
-              unit_price: { amount: 550, currency_code: 'AUD' },
-              total_price: { amount: 550, currency_code: 'AUD' },
-            },
-          },
-        ],
-      },
-      payment: {
-        charges: {
-          total: { amount: cust.price + 550, currency_code: 'AUD' },
-          sub_total: { amount: cust.price + 550, currency_code: 'AUD' },
-          tax: { amount: Math.round((cust.price + 550) * 0.1), currency_code: 'AUD' },
-        },
-      },
+      resource_href: `https://api.uber.com/v2/eats/order/${resourceId}`,
     };
 
     const rawBody = JSON.stringify(payload);
@@ -140,19 +98,24 @@ export async function POST(req: NextRequest) {
           last_name: cust.name.split(' ')[1] || '',
           phone: cust.phone,
         },
-        items: [
+        categories: [
           {
-            id: `item_dd_${randSuffix}_1`,
-            name: cust.item,
-            price: cust.price,
-            quantity: 1,
-            special_instructions: 'Pack extra napkins',
-          },
-          {
-            id: `item_dd_${randSuffix}_2`,
-            name: 'Iced Jasmine Green Tea',
-            price: 600,
-            quantity: 1,
+            name: 'Entrees',
+            items: [
+              {
+                id: `item_dd_${randSuffix}_1`,
+                name: cust.item,
+                price: cust.price,
+                quantity: 1,
+                special_instructions: 'Pack extra napkins',
+              },
+              {
+                id: `item_dd_${randSuffix}_2`,
+                name: 'Iced Jasmine Green Tea',
+                price: 600,
+                quantity: 1,
+              },
+            ],
           },
         ],
       },

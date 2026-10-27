@@ -1,5 +1,5 @@
 {
-    "id": "153dd7f1-339d-4619-940c-418943c14636",
+    "id": "f9f363d1-e1c2-4595-b477-c649845bc953",
     "display_id": "BC953",
     "external_reference_id": "Order-123",
     "current_state": "CREATED",
@@ -19,7 +19,7 @@
     "eaters": [
         {
             "id": "63578c8b-9cd2-4c4f-91fc-315f575e6a78",
-            "first_name": "Larry"
+            "first_name": "Larry",
         }
     ],
     "cart": {
@@ -268,7 +268,7 @@
                 },
                 "selected_modifier_groups": null,
                 "eater_id": "63578c8b-9cd2-4c4f-91fc-315f575e6a78"
-            }
+            },
         ],
         "fulfillment_issues": [
             {
@@ -316,7 +316,7 @@
                     "external_data": "External data for chocolate donut",
                     "quantity": 1,
                     "fulfillment_action": {
-                        "fulfillment_action_type": "SUBSTITUTE_ME"
+                        "fulfillment_action_type": "SUBSTITUTE_ME",
                     }
                 },
                 "item_availability_info": {
@@ -354,7 +354,7 @@
                     "special_instructions": "",
                     "instance_id": "Strawberry-Donut-Instance"
                 }
-            }
+            },
         ]
     },
     "payment": {
